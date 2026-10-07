@@ -52,9 +52,7 @@ python -m pip install -r requirements.txt pyinstaller
 python -m PyInstaller --noconfirm --windowed --onedir --name PipelineGuard desktop_launcher.py
 ```
 
-The entire generated `dist/PipelineGuard` folder must be distributed.
-This recipe has not yet been built or verified on Windows; an installer and
-shortcut integration remain pending.
+The entire generated `dist/PipelineGuard` folder can be distributed directly. The Windows CI also compiles `PipelineGuard-Setup-1.0.0.exe` with Inno Setup. The standalone executable, startup smoke test, per-user installer, installed-app launch, uninstaller, and cleanup path have all passed on a GitHub-hosted Windows runner.
 
 PipelineGuard is a lightweight DevSecOps security scanner that checks software projects before they are built or released.
 
@@ -100,8 +98,7 @@ pytest -q
 
 Current release development: v1.0.0. Secret scanning, dependency inventory,
 live OSV lookup, scoring, JSON/HTML/SARIF reports, release policies, native
-desktop scanning, Docker support, tests, and GitHub Actions workflows are implemented. Windows
-executable and installer verification still require a Windows runner.
+desktop scanning, Docker support, tests, and GitHub Actions workflows are implemented. The Windows standalone executable and v1.0.0 installer now pass automated build, launch, install, installed-app launch, and uninstall validation on a Windows runner.
 
 When scanning this repository itself, test fixtures intentionally contain fake
 credentials so the scanner can be tested; those findings are expected to make
