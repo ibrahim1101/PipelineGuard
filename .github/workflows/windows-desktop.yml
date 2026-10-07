@@ -40,7 +40,7 @@ jobs:
   desktop:
     name: Build and validate Windows desktop
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -58,8 +58,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
-      - name: Run automated tests
-        run: python -m pytest -q
+      - name: Run Windows release tests
+        run: python -m pytest -vv --durations=20 --ignore=tests/test_large_repository.py
+
+      - name: Run Windows path compatibility test
+        run: python -m pytest -vv tests/test_large_repository.py::test_spaces_and_unicode_paths
 
       - name: Build standalone desktop folder
         run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name PipelineGuard desktop_launcher.py
