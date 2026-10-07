@@ -1,0 +1,8 @@
+services:
+  pipelineguard:
+    build:
+      context: .
+    image: pipelineguard:local
+    volumes:
+      - ./:/workspace:ro
+    command: ["scan", "/workspace", "--output", "/workspace/reports/pipelineguard.json"]
