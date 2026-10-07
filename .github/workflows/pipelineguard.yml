@@ -34,6 +34,15 @@ jobs:
         shell: bash
         run: python -m pytest -q
 
+      - name: Build and smoke-test Docker image
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          docker build -t pipelineguard:ci .
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace:ro" \
+            pipelineguard:ci scan /workspace --config /workspace/.pipelineguard.ci.json
+
       - name: Run PipelineGuard gate and generate SARIF
         id: gate
         shell: bash
