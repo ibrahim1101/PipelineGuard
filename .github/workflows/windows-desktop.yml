@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   desktop:
@@ -138,5 +138,3 @@ jobs:
           files: dist/installer/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        permissions:
-          contents: write
