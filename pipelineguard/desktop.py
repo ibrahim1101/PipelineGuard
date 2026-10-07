@@ -95,6 +95,11 @@ class Desktop:
         except Exception:
             pass
         self.config = tk.StringVar()
+        try:
+            if self.preferences_file.exists():
+                self.config.set(json.loads(self.preferences_file.read_text(encoding="utf-8")).get("last_config", ""))
+        except Exception:
+            pass
         self.online = tk.BooleanVar(value=True)
 
         self._label(card, "PROJECT FOLDER", 9, MUTED, True, bg=CARD).grid(
@@ -218,7 +223,7 @@ class Desktop:
         self.scan_button.state(["disabled"])
         try:
             self.preferences_file.parent.mkdir(parents=True, exist_ok=True)
-            self.preferences_file.write_text(json.dumps({"last_project": self.folder.get()}), encoding="utf-8")
+            self.preferences_file.write_text(json.dumps({"last_project": self.folder.get(), "last_config": self.config.get()}), encoding="utf-8")
         except Exception:
             pass
         self.scan_started = time.perf_counter()
