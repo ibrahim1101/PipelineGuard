@@ -1,23 +1,48 @@
-name: Windows desktop release build
+name: Windows desktop validation
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "pipelineguard/**"
+      - "scanners/**"
+      - "tests/**"
+      - "desktop_launcher.py"
+      - "requirements.txt"
+      - "packaging/windows-installer.iss"
+      - ".github/workflows/windows-desktop.yml"
+  pull_request:
+    paths:
+      - "pipelineguard/**"
+      - "scanners/**"
+      - "tests/**"
+      - "desktop_launcher.py"
+      - "requirements.txt"
+      - "packaging/windows-installer.iss"
+      - ".github/workflows/windows-desktop.yml"
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Existing GitHub release tag to build"
-        required: true
+        description: "Optional existing GitHub release tag to attach the installer to"
+        required: false
         type: string
   release:
     types: [published]
 
+concurrency:
+  group: pipelineguard-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   desktop:
+    name: Build and validate Windows desktop
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
-      - name: Check out release source
+      - name: Check out source
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release_tag || github.event.release.tag_name || github.ref }}
@@ -33,42 +58,85 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
-      - name: Run tests
+      - name: Run automated tests
         run: python -m pytest -q
 
       - name: Build standalone desktop folder
-        run: python -m PyInstaller --noconfirm --windowed --onedir --name PipelineGuard desktop_launcher.py
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name PipelineGuard desktop_launcher.py
 
-      - name: Verify executable exists
+      - name: Verify packaged files
         shell: pwsh
         run: |
-          if (-not (Test-Path "dist/PipelineGuard/PipelineGuard.exe")) {
-            throw "Desktop executable missing"
-          }
+          $exe = "dist/PipelineGuard/PipelineGuard.exe"
+          if (-not (Test-Path $exe)) { throw "Desktop executable missing: $exe" }
+          $size = (Get-Item $exe).Length
+          if ($size -le 0) { throw "Desktop executable is empty" }
+          Write-Host "Packaged executable: $exe ($size bytes)"
 
-      - name: Compile installer
+      - name: Smoke-test packaged desktop launch
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath (Resolve-Path "dist/PipelineGuard/PipelineGuard.exe") -PassThru
+          Start-Sleep -Seconds 5
+          if ($process.HasExited) {
+            throw "Packaged PipelineGuard exited during startup with code $($process.ExitCode)"
+          }
+          Stop-Process -Id $process.Id -Force
+          Write-Host "Packaged desktop launch smoke test passed."
+
+      - name: Compile Windows installer
         shell: pwsh
         run: |
           $compiler = "C:/Program Files (x86)/Inno Setup 6/ISCC.exe"
-          if (-not (Test-Path $compiler)) {
-            throw "Inno Setup 6 is required on the Windows runner"
-          }
+          if (-not (Test-Path $compiler)) { throw "Inno Setup 6 is required on the Windows runner" }
           & $compiler packaging/windows-installer.iss
           if ($LASTEXITCODE -ne 0) { throw "Installer compilation failed" }
+          $installer = Get-ChildItem "dist/installer/PipelineGuard-Setup-*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Compiled installer was not found" }
+          Write-Host "Installer built: $($installer.FullName)"
 
-      - name: Upload workflow artifacts
+      - name: Validate silent install, launch, and uninstall
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem "dist/installer/PipelineGuard-Setup-*.exe" | Select-Object -First 1
+          $installDir = Join-Path $env:LOCALAPPDATA "Programs/PipelineGuard"
+
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/SP-" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Silent installer failed with code $($install.ExitCode)" }
+
+          $installedExe = Join-Path $installDir "PipelineGuard.exe"
+          if (-not (Test-Path $installedExe)) { throw "Installed PipelineGuard executable missing" }
+
+          $app = Start-Process -FilePath $installedExe -PassThru
+          Start-Sleep -Seconds 5
+          if ($app.HasExited) { throw "Installed PipelineGuard exited during startup with code $($app.ExitCode)" }
+          Stop-Process -Id $app.Id -Force
+
+          $uninstaller = Join-Path $installDir "unins000.exe"
+          if (-not (Test-Path $uninstaller)) { throw "PipelineGuard uninstaller missing" }
+          $uninstall = Start-Process -FilePath $uninstaller -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw "Silent uninstall failed with code $($uninstall.ExitCode)" }
+
+          Start-Sleep -Seconds 2
+          if (Test-Path $installedExe) { throw "PipelineGuard executable remained after uninstall" }
+          Write-Host "Windows install/launch/uninstall validation passed."
+
+      - name: Upload Windows build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PipelineGuard-Windows-${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}
+          name: PipelineGuard-Windows-${{ github.sha }}
           path: |
             dist/PipelineGuard/
             dist/installer/
           if-no-files-found: error
 
       - name: Attach installer to GitHub release
-        if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag || github.event.release.tag_name }}
-          files: |
-            dist/installer/*
+          files: dist/installer/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions:
+          contents: write
