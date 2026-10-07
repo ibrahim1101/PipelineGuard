@@ -18,6 +18,7 @@ class Desktop:
     def __init__(self, root):
         self.root = root
         self.report = None
+        self.all_findings = []
         self.events = queue.Queue()
         self.root.title("PipelineGuard — Security Scanner")
         self.root.geometry("1180x780")
@@ -116,6 +117,13 @@ class Desktop:
     def _build_findings(self):
         self._label(self.root, "Security findings", 15, OLIVE_DEEP, True).pack(
             anchor="w", padx=28, pady=(0, 8))
+        search_bar = tk.Frame(self.root, bg=CANVAS)
+        search_bar.pack(fill="x", padx=24, pady=(0, 8))
+        self.search = tk.StringVar()
+        self.search.trace_add("write", lambda *_: self.refresh_findings())
+        tk.Label(search_bar, text="Filter findings:", bg=CANVAS, fg=MUTED,
+                 font=("Segoe UI", 10, "bold")).pack(side="left")
+        ttk.Entry(search_bar, textvariable=self.search, width=42).pack(side="left", padx=(8, 0))
         wrap = tk.Frame(self.root, bg=CANVAS)
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
         table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
@@ -191,6 +199,7 @@ class Desktop:
                 messagebox.showerror("Scan failed", value)
             else:
                 self.report = value
+                self.all_findings = value["findings"]
                 status = value["status"]
                 color = SAFE if status == "SAFE" else WARNING if status == "WARNING" else BLOCKED
                 self.status.set(f"{status} · {len(value['findings'])} findings · "
@@ -202,13 +211,23 @@ class Desktop:
                 self.dependency_value.configure(
                     text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
                     fg=SAFE if value["dependency_check_complete"] else WARNING)
-                for index, item in enumerate(value["findings"]):
-                    self.tree.insert("", "end", iid=str(index), values=(
-                        item.get("severity", ""), item.get("rule", ""),
-                        item.get("file", item.get("package", "dependencies"))))
+                self.refresh_findings()
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
+
+    def refresh_findings(self):
+        if not hasattr(self, "tree"):
+            return
+        query = self.search.get().strip().lower() if hasattr(self, "search") else ""
+        self.tree.delete(*self.tree.get_children())
+        for index, item in enumerate(self.all_findings):
+            haystack = " ".join(str(item.get(key, "")) for key in ("severity", "rule", "file", "package", "summary")).lower()
+            if query and query not in haystack:
+                continue
+            self.tree.insert("", "end", iid=str(index), values=(
+                item.get("severity", ""), item.get("rule", ""),
+                item.get("file", item.get("package", "dependencies"))))
 
     def details(self, event=None):
         selected = self.tree.selection()
