@@ -136,6 +136,7 @@ class Desktop:
         ttk.Entry(search_bar, textvariable=self.search, width=42).pack(side="left", padx=(8, 12))
         ttk.Combobox(search_bar, textvariable=self.severity_filter, state="readonly", width=18,
                      values=("All severities", "CRITICAL", "HIGH", "WARNING", "MEDIUM", "LOW", "INFO")).pack(side="left")
+        ttk.Button(search_bar, text="Clear filters", command=self.clear_filters).pack(side="left", padx=(8, 0))
         wrap = tk.Frame(self.root, bg=CANVAS)
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
         table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
@@ -236,6 +237,10 @@ class Desktop:
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
+
+    def clear_filters(self):
+        self.search.set("")
+        self.severity_filter.set("All severities")
 
     def refresh_findings(self):
         if not hasattr(self, "tree"):
