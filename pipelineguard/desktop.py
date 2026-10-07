@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import subprocess
+from datetime import datetime
 import queue
 import threading
 import time
@@ -25,6 +26,7 @@ class Desktop:
         self.all_findings = []
         self.scan_started = None
         self.last_export = None
+        self.history_file = Path(os.environ.get("APPDATA", Path.home())) / "PipelineGuard" / "history.json"
         self.events = queue.Queue()
         self.root.title("PipelineGuard — Security Scanner")
         self.root.geometry("1180x780")
@@ -94,6 +96,7 @@ class Desktop:
         self.scan_button.pack(side="right")
         ttk.Button(options, text="Export report", command=self.export).pack(side="right", padx=(0, 8))
         ttk.Button(options, text="Open report folder", command=self.open_report_folder).pack(side="right", padx=(0, 8))
+        ttk.Button(options, text="Scan history", command=self.show_history).pack(side="right", padx=(0, 8))
         card.columnconfigure(0, weight=1)
 
     def _metric(self, parent, title, value="—", color=INK):
@@ -220,6 +223,7 @@ class Desktop:
             else:
                 self.report = value
                 self.all_findings = value["findings"]
+                self.save_history(value)
                 elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
                 self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
                 status = value["status"]
@@ -268,7 +272,44 @@ class Desktop:
                 self.report["findings"][int(selected[0])], indent=2))
             self.detail.configure(state="disabled")
 
+    def save_history(self, report):
+        try:
+            self.history_file.parent.mkdir(parents=True, exist_ok=True)
+            history = []
+            if self.history_file.exists():
+                history = json.loads(self.history_file.read_text(encoding="utf-8"))
+            history.append({
+                "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+                "project": self.folder.get(),
+                "status": report["status"],
+                "score": report["score"],
+                "findings": len(report["findings"]),
+            })
+            self.history_file.write_text(json.dumps(history[-25:], indent=2) + "\n", encoding="utf-8")
+        except Exception:
+            pass
+
+    def show_history(self):
+        window = tk.Toplevel(self.root)
+        window.title("PipelineGuard — Scan history")
+        window.geometry("760x420")
+        window.configure(bg=CANVAS)
+        self._label(window, "Recent scans", 16, OLIVE_DEEP, True).pack(anchor="w", padx=18, pady=14)
+        box = tk.Text(window, bg=CARD, fg=INK, relief="flat", font=("Consolas", 10), padx=12, pady=12)
+        box.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        try:
+            history = json.loads(self.history_file.read_text(encoding="utf-8")) if self.history_file.exists() else []
+            if history:
+                for item in reversed(history):
+                    box.insert("end", f"{item['timestamp']} | {item['status']:<7} | Score {item['score']:>3}/100 | {item['findings']} findings | {item['project']}\n")
+            else:
+                box.insert("end", "No completed scans yet.")
+        except Exception as exc:
+            box.insert("end", f"Could not read scan history: {exc}")
+        box.configure(state="disabled")
+
     def open_report_folder(self):
+
         if not self.last_export:
             messagebox.showinfo("PipelineGuard", "Export a report first.")
             return
