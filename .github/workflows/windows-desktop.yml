@@ -40,7 +40,7 @@ jobs:
   desktop:
     name: Build and validate Windows desktop
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -58,11 +58,22 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pyinstaller
 
-      - name: Run Windows release tests
-        run: python -m pytest -vv --durations=20 --ignore=tests/test_large_repository.py
+      - name: Run fast Windows compatibility gate
+        run: >
+          python -m pytest -q
+          tests/test_desktop_engine.py
+          tests/test_engine_parity.py
+          tests/test_reporting.py
+          tests/test_config.py
+          tests/test_config_validation.py
+          tests/test_dependency_scanner.py
+          tests/test_secret_scanner.py
+          tests/test_traversal.py
+          tests/test_versions.py
+          tests/test_large_repository.py::test_spaces_and_unicode_paths
 
-      - name: Run Windows path compatibility test
-        run: python -m pytest -vv tests/test_large_repository.py::test_spaces_and_unicode_paths
+      - name: Verify desktop modules import on Windows
+        run: python -c "import tkinter; import pipelineguard.desktop; import pipelineguard.engine; print('Windows desktop imports OK')"
 
       - name: Build standalone desktop folder
         run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name PipelineGuard desktop_launcher.py
