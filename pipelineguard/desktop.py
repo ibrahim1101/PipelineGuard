@@ -1,5 +1,8 @@
 """Standalone matte-olive desktop interface; no HTTP server or browser."""
 import json
+import os
+import sys
+import subprocess
 import queue
 import threading
 import time
@@ -21,6 +24,7 @@ class Desktop:
         self.report = None
         self.all_findings = []
         self.scan_started = None
+        self.last_export = None
         self.events = queue.Queue()
         self.root.title("PipelineGuard — Security Scanner")
         self.root.geometry("1180x780")
@@ -89,6 +93,7 @@ class Desktop:
         self.scan_button = ttk.Button(options, text="Scan project", command=self.scan)
         self.scan_button.pack(side="right")
         ttk.Button(options, text="Export report", command=self.export).pack(side="right", padx=(0, 8))
+        ttk.Button(options, text="Open report folder", command=self.open_report_folder).pack(side="right", padx=(0, 8))
         card.columnconfigure(0, weight=1)
 
     def _metric(self, parent, title, value="—", color=INK):
@@ -251,6 +256,21 @@ class Desktop:
                 self.report["findings"][int(selected[0])], indent=2))
             self.detail.configure(state="disabled")
 
+    def open_report_folder(self):
+        if not self.last_export:
+            messagebox.showinfo("PipelineGuard", "Export a report first.")
+            return
+        folder = str(Path(self.last_export).parent)
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(folder)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", folder])
+            else:
+                subprocess.Popen(["xdg-open", folder])
+        except Exception as exc:
+            messagebox.showerror("PipelineGuard", f"Could not open folder: {exc}")
+
     def export(self):
         if self.report is None:
             messagebox.showinfo("PipelineGuard", "Complete a scan first.")
@@ -268,6 +288,7 @@ class Desktop:
                 if writer is None:
                     raise ValueError("Choose HTML, JSON, or SARIF")
                 writer(self.report, output)
+                self.last_export = str(output)
                 messagebox.showinfo("PipelineGuard", "Report exported successfully.")
             except Exception as exc:
                 messagebox.showerror("Export failed", str(exc))
