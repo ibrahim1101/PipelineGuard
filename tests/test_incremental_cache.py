@@ -18,7 +18,7 @@ def test_incremental_cache_reuses_unchanged_files(tmp_path: Path):
 
     events.clear()
     second = ScanCache.load(tmp_path)
-    second_hashes = fingerprint_files(tmp_path, iter_files(tmp_path), second, workers=2, progress=events.append)
+    second_hashes = fingerprint_files(tmp_path, (p for p in iter_files(tmp_path) if p.name != ".pipelineguard-cache.json"), second, workers=2, progress=events.append)
     assert second_hashes == first_hashes
     assert events[-1].cached == 2
 
