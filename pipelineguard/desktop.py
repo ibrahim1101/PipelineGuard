@@ -129,9 +129,13 @@ class Desktop:
         search_bar.pack(fill="x", padx=24, pady=(0, 8))
         self.search = tk.StringVar()
         self.search.trace_add("write", lambda *_: self.refresh_findings())
+        self.severity_filter = tk.StringVar(value="All severities")
+        self.severity_filter.trace_add("write", lambda *_: self.refresh_findings())
         tk.Label(search_bar, text="Filter findings:", bg=CANVAS, fg=MUTED,
                  font=("Segoe UI", 10, "bold")).pack(side="left")
-        ttk.Entry(search_bar, textvariable=self.search, width=42).pack(side="left", padx=(8, 0))
+        ttk.Entry(search_bar, textvariable=self.search, width=42).pack(side="left", padx=(8, 12))
+        ttk.Combobox(search_bar, textvariable=self.severity_filter, state="readonly", width=18,
+                     values=("All severities", "CRITICAL", "HIGH", "WARNING", "MEDIUM", "LOW", "INFO")).pack(side="left")
         wrap = tk.Frame(self.root, bg=CANVAS)
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
         table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
@@ -240,7 +244,10 @@ class Desktop:
         self.tree.delete(*self.tree.get_children())
         for index, item in enumerate(self.all_findings):
             haystack = " ".join(str(item.get(key, "")) for key in ("severity", "rule", "file", "package", "summary")).lower()
+            selected_severity = self.severity_filter.get() if hasattr(self, "severity_filter") else "All severities"
             if query and query not in haystack:
+                continue
+            if selected_severity != "All severities" and str(item.get("severity", "")).upper() != selected_severity:
                 continue
             self.tree.insert("", "end", iid=str(index), values=(
                 item.get("severity", ""), item.get("rule", ""),
