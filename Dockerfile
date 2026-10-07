@@ -11,7 +11,6 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 
 COPY pipelineguard ./pipelineguard
 COPY scanners ./scanners
-COPY pyproject.toml* setup.cfg* setup.py* ./
 
 ENTRYPOINT ["python", "-m", "pipelineguard.main"]
 CMD ["scan", "/workspace"]
