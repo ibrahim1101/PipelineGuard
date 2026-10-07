@@ -4,6 +4,8 @@
     {"rule": "Slack token", "file": "tests/**"},
     {"rule": "AWS access key", "file": "tests/**"},
     {"rule": "Private key", "file": "tests/**"},
+    {"rule": "SendGrid API key", "file": "tests/**"},
+    {"rule": "npm access token", "file": "tests/**"},
     {"rule": "Private key", "file": "scanners/secret_scanner.py"}
   ]
 }
