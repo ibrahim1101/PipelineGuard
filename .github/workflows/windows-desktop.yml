@@ -2,6 +2,11 @@ name: Windows desktop release build
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing GitHub release tag to build"
+        required: true
+        type: string
   release:
     types: [published]
 
@@ -15,7 +20,7 @@ jobs:
       - name: Check out release source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: ${{ inputs.release_tag || github.event.release.tag_name || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,16 +59,16 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PipelineGuard-Windows-${{ github.event.release.tag_name || github.ref_name }}
+          name: PipelineGuard-Windows-${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}
           path: |
             dist/PipelineGuard/
             dist/installer/
           if-no-files-found: error
 
       - name: Attach installer to GitHub release
-        if: github.event_name == 'release' && github.event.action == 'published'
+        if: (github.event_name == 'release' && github.event.action == 'published') || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ inputs.release_tag || github.event.release.tag_name }}
           files: |
             dist/installer/*
