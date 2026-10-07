@@ -171,6 +171,7 @@ class Desktop:
                               bg=CARD, fg=INK, relief="flat", borderwidth=0,
                               font=("Consolas", 9), padx=14, pady=8)
         self.detail.pack(fill="both", expand=True)
+        ttk.Button(detail_card, text="Copy finding details", command=self.copy_details).pack(anchor="e", padx=14, pady=(0, 12))
         self.detail.insert("end", "Select a finding to inspect its details.")
         self.detail.configure(state="disabled")
 
@@ -327,6 +328,17 @@ class Desktop:
                 subprocess.Popen(["xdg-open", folder])
         except Exception as exc:
             messagebox.showerror("PipelineGuard", f"Could not open folder: {exc}")
+
+    def copy_details(self):
+        selected = self.tree.selection()
+        if not selected or not self.report:
+            messagebox.showinfo("PipelineGuard", "Select a finding first.")
+            return
+        details = json.dumps(self.report["findings"][int(selected[0])], indent=2)
+        self.root.clipboard_clear()
+        self.root.clipboard_append(details)
+        self.root.update()
+        messagebox.showinfo("PipelineGuard", "Finding details copied to the clipboard.")
 
     def export(self):
         if self.report is None:
