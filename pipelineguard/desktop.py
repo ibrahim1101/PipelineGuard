@@ -115,6 +115,8 @@ class Desktop:
         self.status_value = self._metric(row, "Status", "READY", OLIVE_MID)
         self.score_value = self._metric(row, "Security score", "—")
         self.findings_value = self._metric(row, "Findings", "—")
+        self.critical_value = self._metric(row, "Critical", "—", BLOCKED)
+        self.warning_value = self._metric(row, "Warnings", "—", WARNING)
         self.dependency_value = self._metric(row, "Dependency lookup", "—")
         self.duration_value = self._metric(row, "Scan duration", "—")
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
@@ -234,6 +236,8 @@ class Desktop:
                 self.status_value.configure(text=status, fg=color)
                 self.score_value.configure(text=f"{value['score']}/100", fg=color)
                 self.findings_value.configure(text=str(len(value["findings"])), fg=color)
+                self.critical_value.configure(text=str(value["summary"]["critical"]), fg=BLOCKED)
+                self.warning_value.configure(text=str(value["summary"]["warnings"]), fg=WARNING)
                 self.dependency_value.configure(
                     text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
                     fg=SAFE if value["dependency_check_complete"] else WARNING)
