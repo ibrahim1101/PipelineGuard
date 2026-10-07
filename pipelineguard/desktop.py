@@ -137,6 +137,12 @@ class Desktop:
         self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
         self.tree.pack(side="left", fill="both", expand=True, padx=8, pady=8)
+        self.tree.tag_configure("critical", foreground=BLOCKED)
+        self.tree.tag_configure("high", foreground=BLOCKED)
+        self.tree.tag_configure("warning", foreground=WARNING)
+        self.tree.tag_configure("medium", foreground=WARNING)
+        self.tree.tag_configure("low", foreground=SAFE)
+        self.tree.tag_configure("info", foreground=MUTED)
         self.tree.bind("<<TreeviewSelect>>", self.details)
 
         detail_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
@@ -227,7 +233,8 @@ class Desktop:
                 continue
             self.tree.insert("", "end", iid=str(index), values=(
                 item.get("severity", ""), item.get("rule", ""),
-                item.get("file", item.get("package", "dependencies"))))
+                item.get("file", item.get("package", "dependencies")),),
+                tags=(str(item.get("severity", "info")).lower(),))
 
     def details(self, event=None):
         selected = self.tree.selection()
