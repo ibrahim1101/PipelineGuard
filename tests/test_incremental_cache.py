@@ -18,7 +18,7 @@ def test_incremental_cache_reuses_unchanged_files(tmp_path: Path):
 
     events.clear()
     second = ScanCache.load(tmp_path)
-    second_hashes = fingerprint_files(tmp_path, (p for p in iter_files(tmp_path) if p.name != ".pipelineguard-cache.json"), second, workers=2, progress=events.append)
+    second_hashes = fingerprint_files(tmp_path, iter_files(tmp_path), second, workers=2, progress=events.append)
     assert second_hashes == first_hashes
     assert events[-1].cached == 2
 
@@ -45,3 +45,10 @@ def test_corrupt_cache_degrades_gracefully(tmp_path: Path):
     (tmp_path / ".pipelineguard-cache.json").write_text("{broken", encoding="utf-8")
     cache = ScanCache.load(tmp_path)
     assert cache.entries == {}
+
+
+def test_traversal_excludes_pipelineguard_generated_state(tmp_path: Path):
+    (tmp_path / "source.py").write_text("pass", encoding="utf-8")
+    (tmp_path / ".pipelineguard-cache.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".pipelineguard-baseline.json").write_text("{}", encoding="utf-8")
+    assert [path.name for path in iter_files(tmp_path)] == ["source.py"]
