@@ -27,6 +27,7 @@ class Desktop:
         self.scan_started = None
         self.last_export = None
         self.history_file = Path(os.environ.get("APPDATA", Path.home())) / "PipelineGuard" / "history.json"
+        self.preferences_file = self.history_file.parent / "preferences.json"
         self.events = queue.Queue()
         self.root.title("PipelineGuard — Security Scanner")
         self.root.geometry("1180x780")
@@ -88,6 +89,11 @@ class Desktop:
         card = tk.Frame(self.root, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
         card.pack(fill="x", padx=24, pady=(18, 10))
         self.folder = tk.StringVar()
+        try:
+            if self.preferences_file.exists():
+                self.folder.set(json.loads(self.preferences_file.read_text(encoding="utf-8")).get("last_project", ""))
+        except Exception:
+            pass
         self.config = tk.StringVar()
         self.online = tk.BooleanVar(value=True)
 
@@ -210,6 +216,11 @@ class Desktop:
             messagebox.showerror("PipelineGuard", "Choose an existing project folder.")
             return
         self.scan_button.state(["disabled"])
+        try:
+            self.preferences_file.parent.mkdir(parents=True, exist_ok=True)
+            self.preferences_file.write_text(json.dumps({"last_project": self.folder.get()}), encoding="utf-8")
+        except Exception:
+            pass
         self.scan_started = time.perf_counter()
         self.report = None
         self.tree.delete(*self.tree.get_children())
