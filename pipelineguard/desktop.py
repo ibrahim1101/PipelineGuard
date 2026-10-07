@@ -65,6 +65,24 @@ class Desktop:
                  font=("Segoe UI", 30, "bold")).pack(anchor="w", padx=28, pady=(20, 0))
         tk.Label(header, text="Secure every build before it reaches production.",
                  bg=OLIVE_DEEP, fg=OLIVE_LIGHT, font=("Segoe UI", 11)).pack(anchor="w", padx=31)
+        ttk.Button(header, text="About", command=self.show_about).place(relx=1.0, x=-28, y=32, anchor="e")
+
+    def show_about(self):
+        window = tk.Toplevel(self.root)
+        window.title("About PipelineGuard")
+        window.geometry("440x300")
+        window.resizable(False, False)
+        window.configure(bg=CANVAS)
+        self._label(window, "PipelineGuard", 22, OLIVE_DEEP, True).pack(pady=(28, 4))
+        self._label(window, "DevSecOps security scanner", 11, MUTED, bg=CANVAS).pack()
+        text = (
+            "Version 1.0.0\\n\\n"
+            "Scan projects for exposed secrets, dependency issues, "
+            "and release-blocking security findings.\\n\\n"
+            "Desktop · Docker · JSON · HTML · SARIF · OSV"
+        )
+        self._label(window, text, 10, INK, bg=CANVAS, justify="center", wraplength=360).pack(pady=24)
+        ttk.Button(window, text="Close", command=window.destroy).pack()
 
     def _build_controls(self):
         card = tk.Frame(self.root, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
