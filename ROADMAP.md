@@ -6,8 +6,7 @@ We are building one strong first release instead of several limited versions. In
 
 Verification: 74 automated tests pass locally; four real Tk GUI tests require
 a graphical session and are skipped here. Live OSV lookup and advisory
-enrichment passed. Desktop visual QA, Windows executable, installer and CI
-execution remain pending. Implementation counts are provisional.
+enrichment passed. Windows executable, installer, startup, install, and uninstall validation now pass in CI. Desktop visual QA on a normal interactive Windows machine remains pending. Implementation counts are provisional.
 
 Desktop scope extends the tracker to 34 features. Final-environment completion
 counts remain pending release QA.
@@ -47,17 +46,17 @@ An item becomes **Done and Tested** only after implementation, automated tests, 
 | 27 | GitHub pull-request annotations | Implemented | Escaping tests passed; GitHub execution pending |
 | 28 | Rich policy and release gates | Implemented | Pending final test |
 | 29 | Performance and large-repository testing | Partial | 10,000-file Linux test passed; Windows benchmark pending |
-| 30 | Final packaging, documentation, and release QA | Planned | Not started |
+| 30 | Final packaging, documentation, and release QA | In progress | Windows packaging/install QA passed; final visual/release QA pending |
 | 31 | Olive-green native desktop interface | Implemented | Visual QA pending |
 | 32 | Background desktop scans and report exports | Implemented | Engine tests passed; GUI tests pending |
-| 33 | Standalone Windows executable | Packaging recipe added | Windows build pending |
-| 34 | Windows installer and shortcut | Definition implemented | Build/install/uninstall pending |
+| 33 | Standalone Windows executable | Implemented | Windows build and startup smoke test passed |
+| 34 | Windows installer and shortcut | Implemented | Build/install/launch/uninstall CI passed |
 
 ## Progress format
 
 ```text
-PipelineGuard v1.0.0: 33/34 implemented
-Tested: 4/34 (feature acceptance, not unit-test count)
+PipelineGuard v1.0.0: 34/34 implemented
+Tested: Windows packaging chain and core automated gates passing; final visual/release acceptance pending
 Currently working on: Feature #30 — final packaging, documentation, and release QA
 ```
 
