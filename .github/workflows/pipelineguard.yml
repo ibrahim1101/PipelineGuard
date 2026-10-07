@@ -40,6 +40,7 @@ jobs:
         run: |
           set +e
           python -m pipelineguard.main scan . \
+            --config .pipelineguard.ci.json \
             --output reports/pipelineguard.sarif \
             --github-annotations
           status=$?
@@ -48,7 +49,7 @@ jobs:
 
       - name: Upload SARIF to GitHub Code Scanning
         if: always() && hashFiles('reports/pipelineguard.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: reports/pipelineguard.sarif
 
