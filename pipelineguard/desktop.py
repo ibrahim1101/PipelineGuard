@@ -1,4 +1,4 @@
-"""Standalone native desktop interface; no HTTP server or browser."""
+"""Standalone matte-olive desktop interface; no HTTP server or browser."""
 import json
 import queue
 import threading
@@ -8,7 +8,10 @@ from pathlib import Path
 
 from pipelineguard.engine import run_scan
 from pipelineguard.reporting import write_json_report, write_html_report, write_sarif_report
-from pipelineguard.theme import OLIVE_DARK, OLIVE_LIGHT, INK
+from pipelineguard.theme import (
+    OLIVE, OLIVE_DARK, OLIVE_DEEP, OLIVE_MID, OLIVE_LIGHT, CANVAS,
+    CARD, INK, MUTED, BORDER, SAFE, WARNING, BLOCKED, WHITE,
+)
 
 
 class Desktop:
@@ -16,72 +19,162 @@ class Desktop:
         self.root = root
         self.report = None
         self.events = queue.Queue()
-        root.title("PipelineGuard — Desktop")
-        root.geometry("1060x720")
-        root.minsize(800, 600)
-        root.configure(bg=OLIVE_LIGHT)
+        self.root.title("PipelineGuard — Security Scanner")
+        self.root.geometry("1180x780")
+        self.root.minsize(900, 650)
+        self.root.configure(bg=CANVAS)
+
         style = ttk.Style(root)
         style.theme_use("clam")
-        style.configure("TButton", padding=8, background=OLIVE_DARK, foreground="white")
-        style.configure("Treeview", rowheight=28)
-        tk.Label(root, text="PipelineGuard", font=("Segoe UI", 24, "bold"), bg=OLIVE_DARK, fg="white", pady=16).pack(fill="x")
-        bar = ttk.Frame(root, padding=12)
-        bar.pack(fill="x")
+        style.configure("TFrame", background=CANVAS)
+        style.configure("Card.TFrame", background=CARD)
+        style.configure("TButton", font=("Segoe UI", 10, "bold"), padding=(14, 8),
+                        background=OLIVE_MID, foreground=WHITE, borderwidth=0)
+        style.map("TButton", background=[("active", OLIVE_DARK), ("disabled", BORDER)])
+        style.configure("Treeview", background=CARD, fieldbackground=CARD, foreground=INK,
+                        rowheight=32, borderwidth=0, font=("Segoe UI", 10))
+        style.configure("Treeview.Heading", background=OLIVE_DARK, foreground=WHITE,
+                        font=("Segoe UI", 10, "bold"), padding=8)
+        style.configure("Horizontal.TProgressbar", troughcolor=BORDER, background=OLIVE,
+                        bordercolor=CANVAS, lightcolor=OLIVE, darkcolor=OLIVE)
+
+        self._build_header()
+        self._build_controls()
+        self._build_dashboard()
+        self._build_findings()
+        self.root.after(100, self.poll)
+
+    def _label(self, parent, text, size=10, color=INK, bold=False, **kwargs):
+        return tk.Label(parent, text=text, bg=kwargs.pop("bg", CANVAS), fg=color,
+                        font=("Segoe UI", size, "bold" if bold else "normal"), **kwargs)
+
+    def _build_header(self):
+        header = tk.Frame(self.root, bg=OLIVE_DEEP, height=112)
+        header.pack(fill="x")
+        header.pack_propagate(False)
+        tk.Label(header, text="PipelineGuard", bg=OLIVE_DEEP, fg=WHITE,
+                 font=("Segoe UI", 30, "bold")).pack(anchor="w", padx=28, pady=(20, 0))
+        tk.Label(header, text="Secure every build before it reaches production.",
+                 bg=OLIVE_DEEP, fg=OLIVE_LIGHT, font=("Segoe UI", 11)).pack(anchor="w", padx=31)
+
+    def _build_controls(self):
+        card = tk.Frame(self.root, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        card.pack(fill="x", padx=24, pady=(18, 10))
         self.folder = tk.StringVar()
-        ttk.Entry(bar, textvariable=self.folder, width=70).pack(side="left", fill="x", expand=True)
-        ttk.Button(bar, text="Choose project", command=self.choose).pack(side="left")
-        self.online = tk.BooleanVar(value=True)
-        ttk.Checkbutton(root, text="Online vulnerability lookup — sends package names and versions to OSV", variable=self.online).pack(anchor="w", padx=12)
         self.config = tk.StringVar()
-        settings = ttk.Frame(root, padding=12)
-        settings.pack(fill="x")
-        ttk.Entry(settings, textvariable=self.config).pack(side="left", fill="x", expand=True)
-        ttk.Button(settings, text="Choose configuration", command=self.choose_config).pack(side="left")
-        self.scan_button = ttk.Button(settings, text="Scan project", command=self.scan)
-        self.scan_button.pack(side="left")
-        ttk.Button(settings, text="Export report", command=self.export).pack(side="left")
-        self.status = tk.StringVar(value="Ready — select a project")
-        tk.Label(root, textvariable=self.status, bg=OLIVE_LIGHT, fg=INK, font=("Segoe UI", 12)).pack(anchor="w", padx=12, pady=8)
-        self.progress = ttk.Progressbar(root, mode="indeterminate")
-        self.progress.pack(fill="x", padx=12, pady=4)
-        findings_frame = ttk.Frame(root)
-        findings_frame.pack(fill="both", expand=True, padx=12)
-        self.tree = ttk.Treeview(findings_frame, columns=("severity", "rule", "location"), show="headings", height=12)
-        for column in ("severity", "rule", "location"):
+        self.online = tk.BooleanVar(value=True)
+
+        self._label(card, "PROJECT FOLDER", 9, MUTED, True, bg=CARD).grid(
+            row=0, column=0, sticky="w", padx=16, pady=(14, 4))
+        ttk.Entry(card, textvariable=self.folder, font=("Segoe UI", 10)).grid(
+            row=1, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        ttk.Button(card, text="Choose project", command=self.choose).grid(
+            row=1, column=1, padx=(0, 16), pady=(0, 14))
+
+        self._label(card, "CONFIGURATION (OPTIONAL)", 9, MUTED, True, bg=CARD).grid(
+            row=2, column=0, sticky="w", padx=16, pady=(4, 4))
+        ttk.Entry(card, textvariable=self.config, font=("Segoe UI", 10)).grid(
+            row=3, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        ttk.Button(card, text="Choose config", command=self.choose_config).grid(
+            row=3, column=1, padx=(0, 16), pady=(0, 14))
+
+        options = tk.Frame(card, bg=CARD)
+        options.grid(row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+        tk.Checkbutton(options, text="Enable live OSV vulnerability lookup",
+                       variable=self.online, bg=CARD, fg=INK, activebackground=CARD,
+                       selectcolor=OLIVE_LIGHT, font=("Segoe UI", 10)).pack(side="left")
+        self.scan_button = ttk.Button(options, text="Scan project", command=self.scan)
+        self.scan_button.pack(side="right")
+        ttk.Button(options, text="Export report", command=self.export).pack(side="right", padx=(0, 8))
+        card.columnconfigure(0, weight=1)
+
+    def _metric(self, parent, title, value="—", color=INK):
+        box = tk.Frame(parent, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        box.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        tk.Label(box, text=title.upper(), bg=CARD, fg=MUTED,
+                 font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=16, pady=(12, 2))
+        label = tk.Label(box, text=value, bg=CARD, fg=color,
+                         font=("Segoe UI", 20, "bold"))
+        label.pack(anchor="w", padx=16, pady=(0, 12))
+        return label
+
+    def _build_dashboard(self):
+        row = tk.Frame(self.root, bg=CANVAS)
+        row.pack(fill="x", padx=24, pady=(0, 12))
+        self.status_value = self._metric(row, "Status", "READY", OLIVE_MID)
+        self.score_value = self._metric(row, "Security score", "—")
+        self.findings_value = self._metric(row, "Findings", "—")
+        self.dependency_value = self._metric(row, "Dependency lookup", "—")
+        self.status = tk.StringVar(value="Ready — choose a project folder to begin")
+        self._label(self.root, "", 10, MUTED)
+        self.status_label = self._label(self.root, self.status.get(), 10, MUTED)
+        self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
+        self.progress = ttk.Progressbar(self.root, mode="indeterminate",
+                                        style="Horizontal.TProgressbar")
+        self.progress.pack(fill="x", padx=24, pady=(0, 14))
+
+    def _build_findings(self):
+        self._label(self.root, "Security findings", 15, OLIVE_DEEP, True).pack(
+            anchor="w", padx=28, pady=(0, 8))
+        wrap = tk.Frame(self.root, bg=CANVAS)
+        wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
+        table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        table_card.pack(side="left", fill="both", expand=True)
+        self.tree = ttk.Treeview(table_card, columns=("severity", "rule", "location"),
+                                 show="headings")
+        for column, width in (("severity", 110), ("rule", 240), ("location", 360)):
             self.tree.heading(column, text=column.title())
-        scrollbar = ttk.Scrollbar(findings_frame, orient="vertical", command=self.tree.yview)
+            self.tree.column(column, width=width, anchor="w")
+        scrollbar = ttk.Scrollbar(table_card, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
-        self.tree.pack(side="left", fill="both", expand=True)
+        self.tree.pack(side="left", fill="both", expand=True, padx=8, pady=8)
         self.tree.bind("<<TreeviewSelect>>", self.details)
-        self.detail = tk.Text(root, height=10, wrap="word")
-        self.detail.pack(fill="both", padx=12, pady=12)
-        root.after(100, self.poll)
+
+        detail_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        detail_card.pack(side="right", fill="both", padx=(14, 0))
+        self._label(detail_card, "Finding details", 11, OLIVE_DARK, True, bg=CARD).pack(
+            anchor="w", padx=14, pady=(12, 5))
+        self.detail = tk.Text(detail_card, width=38, height=12, wrap="word",
+                              bg=CARD, fg=INK, relief="flat", borderwidth=0,
+                              font=("Consolas", 9), padx=14, pady=8)
+        self.detail.pack(fill="both", expand=True)
+        self.detail.insert("end", "Select a finding to inspect its details.")
+        self.detail.configure(state="disabled")
 
     def choose(self):
-        value = filedialog.askdirectory()
+        value = filedialog.askdirectory(title="Choose a project folder")
         if value:
             self.folder.set(value)
 
     def choose_config(self):
-        value = filedialog.askopenfilename(filetypes=[("JSON configuration", "*.json")])
+        value = filedialog.askopenfilename(
+            title="Choose PipelineGuard configuration",
+            filetypes=[("JSON configuration", "*.json")])
         if value:
             self.config.set(value)
 
     def scan(self):
-        path, config, online = Path(self.folder.get()), self.config.get(), self.online.get()
-        if not self.folder.get() or not path.is_dir():
+        if not self.folder.get() or not Path(self.folder.get()).is_dir():
             messagebox.showerror("PipelineGuard", "Choose an existing project folder.")
             return
         self.scan_button.state(["disabled"])
         self.report = None
         self.tree.delete(*self.tree.get_children())
-        self.status.set("Scanning…")
+        self.status.set("Scanning project…")
+        self.status_label.configure(text=self.status.get(), fg=OLIVE_MID)
+        self.status_value.configure(text="SCANNING", fg=OLIVE_MID)
+        self.detail.configure(state="normal")
         self.detail.delete("1.0", "end")
+        self.detail.insert("end", "PipelineGuard is analyzing the selected project.")
+        self.detail.configure(state="disabled")
         self.progress.start(12)
+
         def worker():
             try:
-                self.events.put(("result", run_scan(path, Path(config) if config else None, online)))
+                config = Path(self.config.get()) if self.config.get() else None
+                result = run_scan(Path(self.folder.get()), config, self.online.get())
+                self.events.put(("result", result))
             except Exception as exc:
                 self.events.put(("error", str(exc)))
         threading.Thread(target=worker, daemon=True).start()
@@ -93,12 +186,26 @@ class Desktop:
             self.progress.stop()
             if kind == "error":
                 self.status.set("Scan failed")
+                self.status_label.configure(text=value, fg=BLOCKED)
+                self.status_value.configure(text="ERROR", fg=BLOCKED)
                 messagebox.showerror("Scan failed", value)
             else:
                 self.report = value
-                self.status.set(f"{value['status']} · Score {value['score']}/100 · {len(value['findings'])} findings · Dependency check {'complete' if value['dependency_check_complete'] else 'incomplete'}")
+                status = value["status"]
+                color = SAFE if status == "SAFE" else WARNING if status == "WARNING" else BLOCKED
+                self.status.set(f"{status} · {len(value['findings'])} findings · "
+                                f"Dependency lookup {'complete' if value['dependency_check_complete'] else 'incomplete'}")
+                self.status_label.configure(text=self.status.get(), fg=color)
+                self.status_value.configure(text=status, fg=color)
+                self.score_value.configure(text=f"{value['score']}/100", fg=color)
+                self.findings_value.configure(text=str(len(value["findings"])), fg=color)
+                self.dependency_value.configure(
+                    text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
+                    fg=SAFE if value["dependency_check_complete"] else WARNING)
                 for index, item in enumerate(value["findings"]):
-                    self.tree.insert("", "end", iid=str(index), values=(item["severity"], item["rule"], item.get("file", item.get("package", ""))))
+                    self.tree.insert("", "end", iid=str(index), values=(
+                        item.get("severity", ""), item.get("rule", ""),
+                        item.get("file", item.get("package", "dependencies"))))
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
@@ -106,21 +213,30 @@ class Desktop:
     def details(self, event=None):
         selected = self.tree.selection()
         if selected and self.report:
+            self.detail.configure(state="normal")
             self.detail.delete("1.0", "end")
-            self.detail.insert("end", json.dumps(self.report["findings"][int(selected[0])], indent=2))
+            self.detail.insert("end", json.dumps(
+                self.report["findings"][int(selected[0])], indent=2))
+            self.detail.configure(state="disabled")
 
     def export(self):
         if self.report is None:
             messagebox.showinfo("PipelineGuard", "Complete a scan first.")
             return
-        value = filedialog.asksaveasfilename(defaultextension=".html", filetypes=[("HTML", "*.html"), ("JSON", "*.json"), ("SARIF", "*.sarif")])
+        value = filedialog.asksaveasfilename(
+            title="Export PipelineGuard report",
+            defaultextension=".html",
+            filetypes=[("HTML report", "*.html"), ("JSON report", "*.json"),
+                       ("SARIF report", "*.sarif")])
         if value:
             try:
                 output = Path(value)
-                writer = {".html": write_html_report, ".json": write_json_report, ".sarif": write_sarif_report}.get(output.suffix.lower())
+                writer = {".html": write_html_report, ".json": write_json_report,
+                          ".sarif": write_sarif_report}.get(output.suffix.lower())
                 if writer is None:
                     raise ValueError("Choose HTML, JSON, or SARIF")
                 writer(self.report, output)
+                messagebox.showinfo("PipelineGuard", "Report exported successfully.")
             except Exception as exc:
                 messagebox.showerror("Export failed", str(exc))
 
