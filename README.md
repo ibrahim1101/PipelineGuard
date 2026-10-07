@@ -8,6 +8,36 @@ CRITICAL; null disables this additional gate. Unknown advisory severity is
 not guessed. Use `fail_on_warning` for a stricter policy that also blocks
 incomplete checks and unknown-severity vulnerability warnings.
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t pipelineguard:local .
+```
+
+Scan a project from the current directory:
+
+```bash
+docker run --rm -v "$PWD":/workspace:ro pipelineguard:local scan /workspace
+```
+
+Generate a JSON report in the current directory:
+
+```bash
+mkdir -p reports
+docker run --rm -v "$PWD":/workspace pipelineguard:local \
+  scan /workspace --json --output /workspace/reports/pipelineguard.json
+```
+
+Or use Docker Compose:
+
+```bash
+docker compose run --rm pipelineguard
+```
+
+The container runs the CLI scanner only; the native desktop application remains available through the Windows build.
+
 ## Standalone desktop (development)
 
 Launch with `python -m pipelineguard.desktop`. Uses native Tk widgets,
@@ -40,7 +70,7 @@ PipelineGuard is a lightweight DevSecOps security scanner that checks software p
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+.venv\\Scripts\\activate
 pip install -r requirements.txt
 python -m pipelineguard.main scan .
 ```
@@ -70,7 +100,7 @@ pytest -q
 
 Current release development: v1.0.0. Secret scanning, dependency inventory,
 live OSV lookup, scoring, JSON/HTML/SARIF reports, release policies, native
-desktop scanning, tests, and GitHub Actions workflows are implemented. Windows
+desktop scanning, Docker support, tests, and GitHub Actions workflows are implemented. Windows
 executable and installer verification still require a Windows runner.
 
 When scanning this repository itself, test fixtures intentionally contain fake
