@@ -2,6 +2,7 @@
 import json
 import queue
 import threading
+import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
@@ -19,6 +20,7 @@ class Desktop:
         self.root = root
         self.report = None
         self.all_findings = []
+        self.scan_started = None
         self.events = queue.Queue()
         self.root.title("PipelineGuard — Security Scanner")
         self.root.geometry("1180x780")
@@ -106,6 +108,7 @@ class Desktop:
         self.score_value = self._metric(row, "Security score", "—")
         self.findings_value = self._metric(row, "Findings", "—")
         self.dependency_value = self._metric(row, "Dependency lookup", "—")
+        self.duration_value = self._metric(row, "Scan duration", "—")
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
         self._label(self.root, "", 10, MUTED)
         self.status_label = self._label(self.root, self.status.get(), 10, MUTED)
@@ -173,6 +176,7 @@ class Desktop:
             messagebox.showerror("PipelineGuard", "Choose an existing project folder.")
             return
         self.scan_button.state(["disabled"])
+        self.scan_started = time.perf_counter()
         self.report = None
         self.tree.delete(*self.tree.get_children())
         self.status.set("Scanning project…")
@@ -206,6 +210,8 @@ class Desktop:
             else:
                 self.report = value
                 self.all_findings = value["findings"]
+                elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
+                self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
                 status = value["status"]
                 color = SAFE if status == "SAFE" else WARNING if status == "WARNING" else BLOCKED
                 self.status.set(f"{status} · {len(value['findings'])} findings · "
