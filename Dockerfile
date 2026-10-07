@@ -1,0 +1,17 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && python -m pip install --no-cache-dir -r requirements.txt
+
+COPY pipelineguard ./pipelineguard
+COPY scanners ./scanners
+COPY pyproject.toml* setup.cfg* setup.py* ./
+
+ENTRYPOINT ["python", "-m", "pipelineguard.main"]
+CMD ["scan", "/workspace"]
