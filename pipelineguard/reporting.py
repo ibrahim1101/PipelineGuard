@@ -77,9 +77,15 @@ def write_sarif_report(report: dict[str, Any], output: Path) -> None:
             )}
         file_name = finding.get("file")
         line = finding.get("line")
-        if file_name:
-            region = {"startLine": int(line)} if line else {}
-            result["locations"] = [{"physicalLocation": {"artifactLocation": {"uri": str(file_name)}, "region": region}}]
+        if not file_name:
+            file_name = "PipelineGuard"
+        region = {"startLine": int(line)} if line else {}
+        result["locations"] = [{
+            "physicalLocation": {
+                "artifactLocation": {"uri": str(file_name)},
+                "region": region,
+            }
+        }]
         results.append(result)
         rules[rule_id] = {"id": rule_id, "name": str(finding.get("rule", rule_id))}
     sarif = {
