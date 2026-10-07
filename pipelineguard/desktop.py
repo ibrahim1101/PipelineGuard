@@ -273,8 +273,16 @@ class Desktop:
         if selected and self.report:
             self.detail.configure(state="normal")
             self.detail.delete("1.0", "end")
-            self.detail.insert("end", json.dumps(
-                self.report["findings"][int(selected[0])], indent=2))
+            finding = self.report["findings"][int(selected[0])]
+            readable = (
+                f"Severity: {finding.get('severity', 'UNKNOWN')}\\n"
+                f"Rule: {finding.get('rule', 'Security finding')}\\n"
+                f"Location: {finding.get('file', finding.get('package', 'N/A'))}\\n\\n"
+                f"Summary\\n{finding.get('summary', 'No summary available.')}\\n\\n"
+                f"Remediation\\n{finding.get('remediation', 'Review this finding and remove or secure the affected value.')}\\n\\n"
+                f"Technical details\\n{json.dumps(finding, indent=2)}"
+            )
+            self.detail.insert("end", readable)
             self.detail.configure(state="disabled")
 
     def save_history(self, report):
