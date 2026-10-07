@@ -1,0 +1,14 @@
+{
+  "ignored_directories": [".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "build", "dist"],
+  "max_file_size": 1000000,
+  "fail_on_warning": false,
+  "allowlist": [
+    {
+      "rule": "Generic secret assignment",
+      "file": "tests/fixtures/example.env",
+      "line": 1
+    }
+  ],
+  "minimum_score": 80,
+  "blocked_rules": ["Private key"]
+}

@@ -1,5 +1,11 @@
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
 .pytest_cache/
+.mypy_cache/
 reports/*.json
+reports/*.html
+build/
+dist/
+*.spec

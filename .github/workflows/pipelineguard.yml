@@ -1,0 +1,33 @@
+name: PipelineGuard Security Scan
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  security-scan:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -q
+      - name: Generate SARIF report
+        run: python -m pipelineguard.main scan . --output reports/pipelineguard.sarif
+        continue-on-error: true
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/pipelineguard.sarif
+      - name: Run PipelineGuard gate
+        run: python -m pipelineguard.main scan . --json --github-annotations

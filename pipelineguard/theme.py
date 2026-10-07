@@ -1,0 +1,9 @@
+"""PipelineGuard visual theme."""
+
+OLIVE = "#708238"
+OLIVE_DARK = "#556B2F"
+OLIVE_LIGHT = "#DDE5C0"
+INK = "#1F2918"
+SAFE = "#4F772D"
+WARNING = "#B08B00"
+BLOCKED = "#9B2C2C"

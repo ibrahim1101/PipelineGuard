@@ -1,0 +1,16 @@
+"""Shared traversal: prune ignored folders and do not follow symbolic links."""
+import os
+from pathlib import Path
+
+DEFAULT_IGNORES = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"}
+
+
+def iter_files(root: Path, ignored: set[str] | None = None):
+    excluded = DEFAULT_IGNORES if ignored is None else ignored
+    for directory, folders, files in os.walk(root, followlinks=False):
+        base = Path(directory)
+        folders[:] = sorted(name for name in folders if name not in excluded and not (base / name).is_symlink())
+        for name in sorted(files):
+            path = base / name
+            if not path.is_symlink() and path.is_file():
+                yield path
