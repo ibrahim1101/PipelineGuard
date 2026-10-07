@@ -1,0 +1,9 @@
+{
+  "allowlist": [
+    {"rule": "Generic secret assignment", "file": "tests/**"},
+    {"rule": "Slack token", "file": "tests/**"},
+    {"rule": "AWS access key", "file": "tests/**"},
+    {"rule": "Private key", "file": "tests/**"},
+    {"rule": "Private key", "file": "scanners/secret_scanner.py"}
+  ]
+}
