@@ -338,6 +338,17 @@ class Desktop:
         except Exception as exc:
             box.insert("end", f"Could not read scan history: {exc}")
         box.configure(state="disabled")
+        ttk.Button(window, text="Clear history", command=lambda: self.clear_history(window)).pack(pady=(0, 14))
+
+    def clear_history(self, window=None):
+        try:
+            if self.history_file.exists():
+                self.history_file.unlink()
+            if window and window.winfo_exists():
+                window.destroy()
+            messagebox.showinfo("PipelineGuard", "Scan history cleared.")
+        except Exception as exc:
+            messagebox.showerror("PipelineGuard", f"Could not clear history: {exc}")
 
     def open_report_folder(self):
 
