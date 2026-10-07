@@ -1,12 +1,12 @@
 [Setup]
 AppId=PipelineGuard.Desktop
 AppName=PipelineGuard
-AppVersion=1.0.0-dev
+AppVersion=1.0.0
 DefaultDirName={localappdata}\Programs\PipelineGuard
 DefaultGroupName=PipelineGuard
 PrivilegesRequired=lowest
 OutputDir=..\dist\installer
-OutputBaseFilename=PipelineGuard-Setup-dev
+OutputBaseFilename=PipelineGuard-Setup-1.0.0
 Compression=lzma2
 SolidCompression=yes
 UninstallDisplayIcon={app}\PipelineGuard.exe
