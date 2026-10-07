@@ -1,63 +1,78 @@
-# PipelineGuard v1.0.0 Development Tracker
+# PipelineGuard Development Roadmap
 
-We are building one strong first release instead of several limited versions. Internal phases organize work but are not separate public versions.
+PipelineGuard v1.0.0 is the first complete public release. This document now separates the shipped baseline from post-release development.
 
-## Overall progress
+## v1.0.0 — Released
 
-Verification: 74 automated tests pass locally; four real Tk GUI tests require
-a graphical session and are skipped here. Live OSV lookup and advisory
-enrichment passed. Windows executable, installer, startup, install, and uninstall validation now pass in CI. Desktop visual QA on a normal interactive Windows machine remains pending. Implementation counts are provisional.
+**Status: Released and validated**
 
-Desktop scope extends the tracker to 34 features. Final-environment completion
-counts remain pending release QA.
+Release validation completed successfully:
 
-An item becomes **Done and Tested** only after implementation, automated tests, and a real-project test pass.
+- 34/34 planned v1.0 features implemented.
+- Core security workflow passes in GitHub Actions.
+- Live OSV lookup and advisory enrichment validated.
+- Mixed Python/Node integration gate passed.
+- 10,000-file synthetic scale test passed on Linux.
+- Native Windows desktop build passed.
+- Packaged Windows application startup smoke test passed.
+- Inno Setup installer compilation passed.
+- Silent install, installed-app launch, uninstall, and cleanup passed on a GitHub-hosted Windows runner.
+- `PipelineGuard-Setup-1.0.0.exe` was generated and attached to the v1.0.0 GitHub release.
+- Terminal, JSON, HTML, and SARIF reporting shipped.
+- GitHub annotations, configurable release gates, allowlists, suppression rules, Docker support, and the native desktop workflow shipped.
 
-## Feature tracker
+Interactive visual inspection on real user hardware remains useful acceptance feedback, but it is no longer a blocker for the already-published v1.0.0 release.
 
-| # | Feature | Status | Tested |
-|---:|---|---|---|
-| 1 | Modular project structure | Implemented | Pending final test |
-| 2 | Secret scanning engine | Implemented | Pending final test |
-| 3 | Generic password and token detection | Implemented | Pending final test |
-| 4 | AWS, GitHub-token, and private-key detection | Implemented | Pending final test |
-| 5 | Generated-folder exclusions | Implemented | Pending final test |
-| 6 | Python dependency inventory | Implemented | Pending final test |
-| 7 | Node.js dependency inventory | Implemented | Pending final test |
-| 8 | OSV vulnerability lookup | Implemented | Live lookup/enrichment passed |
-| 9 | Offline vulnerability fallback | Implemented | Pending final test |
-| 10 | SAFE/WARNING/BLOCKED decisions | Implemented | Pending final test |
-| 11 | Security score from 0–100 | Implemented | Pending final test |
-| 12 | Terminal report | Implemented | Pending final test |
-| 13 | JSON report | Implemented | Pending final test |
-| 14 | HTML report | Implemented | Pending final test |
-| 15 | Custom configuration file | Implemented | Pending final test |
-| 16 | Configurable ignored directories | Implemented | Pending final test |
-| 17 | Configurable file-size limits | Implemented | Pending final test |
-| 18 | Configurable warning failure policy | Implemented | Pending final test |
-| 19 | Automated unit-test suite | Implemented | 74 local tests passed |
-| 20 | Real-project integration tests | Implemented | Mixed Python/Node project gate passed |
-| 21 | Better version and range parsing | Implemented | Exact versions, URLs, tags, and common ranges classified without guessing |
-| 22 | CVSS and affected-version reporting | Implemented | Numeric scores, vectors, ranges, and fixes tested |
-| 23 | Provider-specific secret rules | Implemented | AWS, GitHub, Slack, Stripe, Google, npm, PyPI, SendGrid, Twilio tested |
-| 24 | False-positive suppression system | Implemented | Scoped wildcard paths and line matching tested |
-| 25 | Allowlist support | Implemented | Pending final test |
-| 26 | SARIF output | Implemented | Pending final test |
-| 27 | GitHub pull-request annotations | Implemented | Escaping tests passed; GitHub execution pending |
-| 28 | Rich policy and release gates | Implemented | Pending final test |
-| 29 | Performance and large-repository testing | Partial | 10,000-file Linux test passed; Windows benchmark pending |
-| 30 | Final packaging, documentation, and release QA | In progress | Windows packaging/install QA passed; final visual/release QA pending |
-| 31 | Olive-green native desktop interface | Implemented | Visual QA pending |
-| 32 | Background desktop scans and report exports | Implemented | Engine tests passed; GUI tests pending |
-| 33 | Standalone Windows executable | Implemented | Windows build and startup smoke test passed |
-| 34 | Windows installer and shortcut | Implemented | Build/install/launch/uninstall CI passed |
+## Shipped v1.0 feature set
 
-## Progress format
+1. Modular project structure
+2. Secret scanning engine
+3. Generic password and token detection
+4. AWS, GitHub-token, and private-key detection
+5. Generated-folder exclusions
+6. Python dependency inventory
+7. Node.js dependency inventory
+8. OSV vulnerability lookup
+9. Offline vulnerability fallback
+10. SAFE/WARNING/BLOCKED decisions
+11. Security score from 0–100
+12. Terminal report
+13. JSON report
+14. HTML report
+15. Custom configuration file
+16. Configurable ignored directories
+17. Configurable file-size limits
+18. Configurable warning failure policy
+19. Automated unit-test suite
+20. Real-project integration tests
+21. Version and dependency-range parsing
+22. CVSS and affected-version reporting
+23. Provider-specific secret rules
+24. False-positive suppression
+25. Allowlist support
+26. SARIF output
+27. GitHub pull-request annotations
+28. Rich policy and release gates
+29. Performance and large-repository testing
+30. Packaging, documentation, and release QA
+31. Matte olive-green native desktop interface
+32. Background desktop scans and report exports
+33. Standalone Windows executable
+34. Windows installer and shortcuts
 
-```text
-PipelineGuard v1.0.0: 34/34 implemented
-Tested: Windows packaging chain and core automated gates passing; final visual/release acceptance pending
-Currently working on: Feature #30 — final packaging, documentation, and release QA
-```
+## Post-v1.0 development
 
-v1.0.0 is complete only when all features are implemented and tested, the CLI works on a clean machine, GitHub Actions passes, and the documentation is complete.
+Future work will be developed without rewriting the v1.0 release history. Candidate priorities are:
+
+- Improve desktop UX using feedback from real Windows installations.
+- Add a polished PipelineGuard application icon and richer Windows executable metadata.
+- Add signed-build readiness and document a future code-signing path.
+- Expand dependency ecosystems beyond Python and Node.js.
+- Improve vulnerability caching and offline intelligence.
+- Add richer remediation guidance and fix prioritization.
+- Add scan baselines/diff mode so CI can highlight newly introduced findings.
+- Expand CI integrations beyond the initial GitHub workflow.
+- Continue performance profiling on very large repositories.
+- Strengthen release artifact integrity and provenance metadata.
+
+The next development version will be selected when the first post-v1.0 feature set is scoped.
