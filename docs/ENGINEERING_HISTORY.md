@@ -279,3 +279,15 @@ Implemented UTC `scanned_at` in engine reports and HTML profile/timestamp labels
 **Changes:** HTML reports now display secret-cache strategy, discovered, scanned, reused, hashed and skip counters, and explain the tiny-file exception (commit `acf8d803`). Added `tests/test_incremental_cache_acceptance.py` with isolated cache-directory tests for a larger file's cold scan, warm reuse, invalidation after content modification, small-file direct scanning and HTML telemetry (commit `27146231`).
 
 **Verification status:** Changes committed to v2; Windows pytest and generated HTML acceptance still pending. Previous confirmed suite: 126 passed, 1 skipped. Stable v1.0.0 untouched.
+
+## Windows cache acceptance — 2026-10-08
+
+**Environment:** Windows PowerShell; `git pull origin feat/v2-engine-integration` fast-forwarded to `e6e913f` and added `scripts/cache_benchmark.py`. User ran `python -m scripts.cache_benchmark` successfully with a 40-file synthetic project.
+
+| Phase | Discovered | Hashed | Scanned | Reused | Skipped (size/changed/error) |
+|---|---:|---:|---:|---:|---|
+| Cold | 40 | 40 | 40 | 0 | 0/0/0 |
+| Warm | 40 | 40 | 0 | 40 | 0/0/0 |
+| Modified one file | 40 | 40 | 1 | 39 | 0/0/0 |
+
+**Outcome:** Content-verified cache reuse and single-file invalidation validated on Windows. All files are still hashed to establish trust; warm reuse avoids rerunning the secret analyzer, not disk I/O. The script reports counters but **does not measure wall-clock duration**, so no speedup claim is justified. Prior pytest checkpoint: 128 passed, 2 skipped in 18.79s (graphical display unavailable; Windows symlink permissions). Next: add timed measurements and test larger real-world-like workloads, without altering stable v1.0.0.
