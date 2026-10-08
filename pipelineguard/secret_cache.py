@@ -49,7 +49,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 for chunk in iter(lambda: handle.read(131072), b""):
                     digest.update(chunk)
             after = file_path.stat()
-            if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
                 continue
             fingerprint = digest.hexdigest()
             prior = previous.get(relative)
@@ -59,7 +59,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
             else:
                 findings = scan_file(file_path, root, max_file_size)
                 final = file_path.stat()
-                if (final.st_size, final.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+                if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
                     continue
             updated[relative] = {"sha256": fingerprint, "findings": findings}
             results.extend(findings)
