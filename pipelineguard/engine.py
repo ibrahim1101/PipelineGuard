@@ -11,7 +11,7 @@ from pipelineguard.cache import ScanCache
 from pipelineguard.config import load_config, apply_allowlist, policy_blocks
 from pipelineguard.git_context import get_git_context
 from pipelineguard.orchestrator import ProgressEvent, fingerprint_files
-from pipelineguard.secret_cache import scan_secrets_incremental
+from pipelineguard.secret_cache import scan_secrets_incremental, choose_scan_strategy
 from pipelineguard.profiles import get_profile
 from pipelineguard.reporting import build_report
 from scanners.traversal import iter_files
@@ -76,9 +76,17 @@ def run_scan(
         progress(ProgressEvent("secrets"))
     use_secret_cache = selected is not None and selected.name.lower() in {"quick", "standard", "deep"}
     secret_metrics: dict[str, int] | None = {} if use_secret_cache else None
-    secrets = (scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
-                                        metrics=secret_metrics)
-               if use_secret_cache else scan_directory(path, settings.ignored_directories, settings.max_file_size))
+    if use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
+        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
+        # Full scans do not reuse findings; preserve the telemetry contract.
+        discovered = sum(1 for _ in iter_files(path.resolve(), settings.ignored_directories))
+        secret_metrics.update({"discovered": discovered, "hashed": 0, "scanned": discovered,
+                               "reused": 0, "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0})
+    elif use_secret_cache:
+        secrets = scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
+                                           metrics=secret_metrics)
+    else:
+        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
     if progress and secret_metrics is not None:
         progress(ProgressEvent("secrets-complete",
                                discovered=secret_metrics["discovered"],
