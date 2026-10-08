@@ -271,3 +271,11 @@ User reported running `python -m pytest -rs -q` after the advisory grouping and 
 ## Reporting metadata Windows acceptance — 2026-10-08
 
 Implemented UTC `scanned_at` in engine reports and HTML profile/timestamp labels plus readable advisory summaries and expandable details. Commits: `e60e95af`, `25030db5`, `dba6e35e` (two regression tests). User-provided `deep_1.html` confirms profile `deep`, UTC timestamp, two grouped dependency advisories, readable summaries, and expandable HTML markup. User subsequently ran `python -m pytest -rs -q` on Windows: **126 passed, 1 skipped in 18.21s**, zero failures. The sole skip was `tests/test_traversal.py:24` because Windows symlink creation needs Developer Mode or elevated privileges. Browser clicking of details sections was not independently verified. Status: **reporting metadata milestone accepted on Windows**, v2 branch only; stable v1.0.0 unchanged.
+
+## Incremental cache verification upgrade — 8 October 2026
+
+**Investigation:** Prior Deep JSON reported 3 discovered, 3 scanned, 0 hashed and 0 reused. Inspection of `pipelineguard/secret_cache.py` showed that files smaller than `MIN_CACHE_BYTES = 1024` are intentionally rescanned without hashing or cache storage. Therefore the previous report cannot demonstrate warm-cache reuse or a defect.
+
+**Changes:** HTML reports now display secret-cache strategy, discovered, scanned, reused, hashed and skip counters, and explain the tiny-file exception (commit `acf8d803`). Added `tests/test_incremental_cache_acceptance.py` with isolated cache-directory tests for a larger file's cold scan, warm reuse, invalidation after content modification, small-file direct scanning and HTML telemetry (commit `27146231`).
+
+**Verification status:** Changes committed to v2; Windows pytest and generated HTML acceptance still pending. Previous confirmed suite: 126 passed, 1 skipped. Stable v1.0.0 untouched.
