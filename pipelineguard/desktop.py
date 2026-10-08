@@ -75,8 +75,21 @@ class Desktop:
         self.sidebar = tk.Frame(self.content_frame, bg=OLIVE_DEEP, width=174)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        self.workspace = tk.Frame(self.content_frame, bg=CANVAS)
-        self.workspace.pack(side="left", fill="both", expand=True)
+        self.workspace_container = tk.Frame(self.content_frame, bg=CANVAS)
+        self.workspace_container.pack(side="left", fill="both", expand=True)
+        self.workspace_canvas = tk.Canvas(self.workspace_container, bg=CANVAS,
+                                          highlightthickness=0, borderwidth=0)
+        self.workspace_scrollbar = ttk.Scrollbar(self.workspace_container, orient="vertical",
+                                                  command=self.workspace_canvas.yview)
+        self.workspace_canvas.configure(yscrollcommand=self.workspace_scrollbar.set)
+        self.workspace_scrollbar.pack(side="right", fill="y")
+        self.workspace_canvas.pack(side="left", fill="both", expand=True)
+        self.workspace = tk.Frame(self.workspace_canvas, bg=CANVAS)
+        self.workspace_window = self.workspace_canvas.create_window(
+            (0, 0), window=self.workspace, anchor="nw")
+        self.workspace.bind("<Configure>", self._update_workspace_scrollregion)
+        self.workspace_canvas.bind("<Configure>", self._resize_workspace)
+        self.root.bind_all("<MouseWheel>", self._scroll_workspace, add="+")
         navigation = (
             ("▦  Dashboard", lambda: self._navigate("Dashboard")),
             ("⌕  Scan Project", lambda: self._navigate("Scan Project")),
@@ -96,6 +109,30 @@ class Desktop:
         tk.Button(self.sidebar, text="ⓘ  About", command=self.show_about,
                   anchor="w", bg=OLIVE_DEEP, fg=OLIVE_LIGHT, relief="flat",
                   borderwidth=0, padx=14, pady=12).pack(side="bottom", fill="x")
+
+    def _update_workspace_scrollregion(self, _event=None):
+        self.workspace_canvas.configure(scrollregion=self.workspace_canvas.bbox("all"))
+
+    def _resize_workspace(self, event):
+        self.workspace_canvas.itemconfigure(self.workspace_window, width=event.width)
+
+    def _scroll_workspace(self, event):
+        """Scroll the dashboard without hijacking findings or details scrolling."""
+        target = self.root.winfo_containing(event.x_root, event.y_root)
+        widget = target
+        while widget is not None:
+            if isinstance(widget, (ttk.Treeview, tk.Text, ttk.Combobox)):
+                return
+            if widget is self.workspace_canvas or widget is self.workspace:
+                break
+            widget = getattr(widget, "master", None)
+        if widget is None:
+            return
+        if self.workspace.winfo_height() <= self.workspace_canvas.winfo_height():
+            return
+        if event.delta:
+            self.workspace_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
+            return "break"
 
     def _navigate(self, destination):
         """Navigate to a working section without presenting nonfunctional pages."""
@@ -233,7 +270,7 @@ class Desktop:
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
         self.status_label = self._label(self.workspace, self.status.get(), 10, MUTED)
         self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
-        self.progress = ttk.Progressbar(self.workspace, mode="indeterminate",
+        self.progress = ttk.Progressbar(self.workspace, mode="determinate", value=0, maximum=100,
                                         style="Horizontal.TProgressbar")
         self.progress.pack(fill="x", padx=24, pady=(0, 4))
         self.cache_status = self._label(self.workspace, "Cache: —", 9, MUTED)
@@ -557,6 +594,7 @@ class Desktop:
         self.detail.insert("end", "PipelineGuard is analyzing the selected project.")
         self.detail.configure(state="disabled")
         self.cache_status.configure(text="Cache: scanning…")
+        self.progress.configure(mode="indeterminate")
         self.progress.start(12)
         self._render_pixel_cat(True)
 
@@ -599,6 +637,7 @@ class Desktop:
             return True
         self.scan_button.state(["!disabled"])
         self.progress.stop()
+        self.progress.configure(mode="determinate", value=0)
         self._render_pixel_cat(False)
         if kind == "error":
             self.status.set("Scan failed")
