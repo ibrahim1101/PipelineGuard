@@ -96,3 +96,30 @@ def test_unchanged_cache_is_not_rewritten(tmp_path, monkeypatch):
     before = cache.stat().st_mtime_ns
     assert scan_secrets_incremental(root, set(), 100) == []
     assert cache.stat().st_mtime_ns == before
+
+
+def test_cache_metrics_distinguish_scan_and_reuse(tmp_path, monkeypatch):
+    root, target = _setup(tmp_path, monkeypatch)
+    first = {}
+    scan_secrets_incremental(root, set(), 100, metrics=first)
+    assert first == {"discovered": 1, "hashed": 1, "scanned": 1, "reused": 0,
+                     "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0}
+    second = {}
+    scan_secrets_incremental(root, set(), 100, metrics=second)
+    assert second["reused"] == 1
+    assert second["scanned"] == 0
+    target.write_text("changed", encoding="utf-8")
+    third = {}
+    scan_secrets_incremental(root, set(), 100, metrics=third)
+    assert third["scanned"] == 1
+    assert third["reused"] == 0
+
+
+def test_cache_metrics_count_oversize_files(tmp_path, monkeypatch):
+    root, target = _setup(tmp_path, monkeypatch)
+    target.write_text("a" * 101, encoding="utf-8")
+    counts = {}
+    assert scan_secrets_incremental(root, set(), 100, metrics=counts) == []
+    assert counts["discovered"] == 1
+    assert counts["skipped_size"] == 1
+    assert counts["hashed"] == 0

@@ -45,3 +45,22 @@ def test_cache_io_failure_does_not_suppress_security_scan(tmp_path, monkeypatch)
     assert result["scan_profile"] == "quick"
     assert any(event.stage == "fingerprint-unavailable" for event in events)
     assert events[-1].stage == "complete"
+
+
+def test_quick_secret_cache_metrics_and_fresh_profiles(tmp_path, monkeypatch):
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "file.py").write_text("print('ok')", encoding="utf-8")
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    events = []
+    first = run_scan(project, profile="quick", online=False, progress=events.append)
+    assert first["secret_cache"]["scanned"] == 1
+    assert first["secret_cache"]["reused"] == 0
+    assert any(event.stage == "secrets-complete" and event.processed == 1 for event in events)
+    second = run_scan(project, profile="quick", online=False)
+    assert second["secret_cache"]["scanned"] == 0
+    assert second["secret_cache"]["reused"] == 1
+    for name in ("release", "forensic"):
+        result = run_scan(project, profile=name, online=False)
+        assert "secret_cache" not in result

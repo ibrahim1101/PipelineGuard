@@ -74,10 +74,22 @@ def run_scan(
     ]
     if progress:
         progress(ProgressEvent("secrets"))
+    use_secret_cache = selected is not None and selected.name.lower() in {"quick", "standard", "deep"}
+    secret_metrics: dict[str, int] | None = {} if use_secret_cache else None
+    secrets = (scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
+                                        metrics=secret_metrics)
+               if use_secret_cache else scan_directory(path, settings.ignored_directories, settings.max_file_size))
+    if progress and secret_metrics is not None:
+        progress(ProgressEvent("secrets-complete",
+                               discovered=secret_metrics["discovered"],
+                               processed=secret_metrics["scanned"] + secret_metrics["reused"],
+                               cached=secret_metrics["reused"]))
     report = build_report(
-        apply_allowlist(scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size) if selected is not None and selected.name.lower() in {'quick', 'standard', 'deep'} else scan_directory(path, settings.ignored_directories, settings.max_file_size), settings.allowlist),
+        apply_allowlist(secrets, settings.allowlist),
         apply_allowlist(records + vulnerabilities, settings.allowlist),
     )
+    if secret_metrics is not None:
+        report["secret_cache"] = secret_metrics
     report["dependency_check_complete"] = not any(item.get("rule") == "Dependency check incomplete" for item in vulnerabilities)
     report["policy_blocked"] = policy_blocks(report, settings) or (settings.fail_on_warning and report["status"] == "WARNING")
     if report["policy_blocked"]:

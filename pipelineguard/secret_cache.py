@@ -24,7 +24,7 @@ def _safe_cached_findings(value: object, relative: str) -> bool:
         for item in value
     )
 
-def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int) -> list[dict[str, object]]:
+def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int, *, metrics: dict[str, int] | None = None) -> list[dict[str, object]]:
     root = root.resolve()
     signature = hashlib.sha256(repr([(name, regex.pattern, regex.flags) for name, regex in RULES]).encode()).hexdigest()
     base = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
@@ -41,11 +41,15 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
     # Continue hashing content to detect same-size/same-mtime modifications.
     updated = {}
     results = []
+    counts = {"discovered": 0, "hashed": 0, "scanned": 0, "reused": 0,
+              "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0}
     for file_path in iter_files(root, ignored_directories):
+        counts["discovered"] += 1
         relative = str(file_path.relative_to(root))
         try:
             before = file_path.stat()
             if before.st_size > max_file_size:
+                counts["skipped_size"] += 1
                 continue
             digest = hashlib.sha256()
             with file_path.open("rb") as handle:
@@ -53,22 +57,30 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                     digest.update(chunk)
             after = file_path.stat()
             if (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
+                counts["skipped_changed"] += 1
                 continue
+            counts["hashed"] += 1
             fingerprint = digest.hexdigest()
             prior = previous.get(relative)
             if (isinstance(prior, dict) and prior.get("sha256") == fingerprint and
                 _safe_cached_findings(prior.get("findings"), relative)):
                 findings = prior["findings"]
+                counts["reused"] += 1
             else:
                 cache_dirty = True
                 findings = scan_file(file_path, root, max_file_size)
                 final = file_path.stat()
                 if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
+                    counts["skipped_changed"] += 1
                     continue
+                counts["scanned"] += 1
             updated[relative] = {"sha256": fingerprint, "findings": findings}
             results.extend(findings)
         except (OSError, UnicodeError):
+            counts["skipped_error"] += 1
             continue
+    if metrics is not None:
+        metrics.update(counts)
     # Avoid rewriting a large cache JSON file on every unchanged warm scan.
     if not cache_dirty and len(updated) == len(previous) and updated.keys() == previous.keys():
         return results
