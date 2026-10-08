@@ -688,3 +688,8 @@ User explicitly confirmed the dark desktop theme is working, but could not suppl
 ## SOC dashboard charts milestone — 2026-10-09
 
 User confirmed prior dark SOC layout looked good and authorized full build. Commit `ef2cc7b` adds Tk Canvas charts for the last 10 genuine history finding counts and current report severity distribution. Empty history/report displays explanatory text rather than invented statistics. Commit `98d7e7a` adds Tk tests for history points and empty states. **CI and Windows acceptance remain unverified for these changes**. Planned remaining scope includes polished cyber-cat branding/pixel-art loader, live event batching, accessible responsive layout, additional real analytics, Windows packaging, full CI/release validation. Local commands: `python -m pytest -q tests/test_desktop_ui.py` and `python -m pytest -q -rs`.
+
+
+## SOC live event batching — 2026-10-09
+
+User visually confirmed the new SOC chart panels and requested continued development. Commit `03d9dfb` changed desktop Tk event polling to drain up to 200 queued events per 100ms cycle, coalescing live findings table redraws; commit `d437a78` normalized event processor indentation immediately afterward. Commit `08e8a24` adds regression coverage for 150 finding events in a single poll and for final report replacement without duplicate preliminary findings. This is a performance/correctness implementation, **not yet independently benchmarked or CI-verified**. Run `python -m pytest -q tests/test_desktop_ui.py` and `python -m pytest -q -rs`, then scan the synthetic test project. Remaining: finalized cyber-cat logo, pixel loader, release packaging, full CI and accessibility checks.
