@@ -109,8 +109,10 @@ class Desktop:
         ttk.Button(card, text="Choose project", command=self.choose).grid(
             row=1, column=1, padx=(0, 16), pady=(0, 14))
 
-        self._label(card, "CONFIGURATION (OPTIONAL)", 9, MUTED, True, bg=CARD).grid(
-            row=2, column=0, sticky="w", padx=16, pady=(4, 4))
+        config_heading = tk.Frame(card, bg=CARD)
+        config_heading.grid(row=2, column=0, sticky="w", padx=16, pady=(4, 4))
+        self._label(config_heading, "CONFIGURATION (OPTIONAL)", 9, MUTED, True, bg=CARD).pack(side="left")
+        ttk.Button(config_heading, text="?", width=3, command=self.show_config_help).pack(side="left", padx=(10, 0))
         ttk.Entry(card, textvariable=self.config, font=("Segoe UI", 10)).grid(
             row=3, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
         ttk.Button(card, text="Choose config", command=self.choose_config).grid(
@@ -208,6 +210,87 @@ class Desktop:
         value = filedialog.askdirectory(title="Choose a project folder")
         if value:
             self.folder.set(value)
+
+    def show_config_help(self):
+        """Explain every accepted JSON configuration key without changing scan settings."""
+        window = tk.Toplevel(self.root)
+        window.title("PipelineGuard — Configuration help")
+        window.geometry("820x650")
+        window.minsize(620, 420)
+        window.configure(bg=CANVAS)
+        self._label(window, "Configuration file guide", 18, OLIVE_DEEP, True).pack(
+            anchor="w", padx=20, pady=(18, 6))
+        self._label(window, "Optional JSON file. Leave blank for default settings.", 10, MUTED).pack(
+            anchor="w", padx=20, pady=(0, 12))
+        body = tk.Frame(window, bg=CARD)
+        body.pack(fill="both", expand=True, padx=20, pady=(0, 12))
+        scroll = ttk.Scrollbar(body, orient="vertical")
+        help_text = tk.Text(body, wrap="word", bg=CARD, fg=INK, relief="flat",
+                            font=("Consolas", 10), padx=14, pady=12,
+                            yscrollcommand=scroll.set)
+        scroll.configure(command=help_text.yview)
+        scroll.pack(side="right", fill="y")
+        help_text.pack(side="left", fill="both", expand=True)
+        instructions = (
+            "HOW TO USE\n"
+            "1. Create a .json file (for example .pipelineguard.json).\n"
+            "2. Copy the example below and customize it.\n"
+            "3. Click 'Choose config' and select your JSON file.\n"
+            "4. Scan your project. Leave the field empty for defaults.\n\n"
+            "ALL SUPPORTED SETTINGS (exact JSON keys)\n\n"
+            "ignored_directories  [strings]  Default: .git, .venv, venv,\n"
+            "  node_modules, __pycache__, .pytest_cache. Replaces defaults.\n\n"
+            "max_file_size  integer  Default: 1000000 bytes. Must be > 0.\n"
+            "  Maximum file size for secret scanning.\n\n"
+            "fail_on_warning  boolean  Default: false.\n"
+            "  Block release on WARNING, including incomplete checks.\n\n"
+            "allowlist  [objects]  Default: [].\n"
+            "  Each entry: rule (exact name), file (path glob), optional\n"
+            "  line (positive integer). Suppresses matching findings.\n"
+            "  Only allowlist verified false positives.\n\n"
+            "minimum_score  integer  Default: 0. Range: 0..100.\n"
+            "  Block release if the score is below this number.\n\n"
+            "blocked_rules  [strings]  Default: [].\n"
+            "  Exact finding rule names that block release.\n\n"
+            "block_advisory_severity  string or null  Default: null.\n"
+            "  LOW, MODERATE, HIGH, CRITICAL or null (disabled).\n"
+            "  Blocks known dependency advisories at/above threshold.\n\n"
+            "EXAMPLE (edit as needed)\n"
+            '{\n  "ignored_directories": [".git", ".venv", "venv",\n'
+            '    "node_modules", "__pycache__", ".pytest_cache"],\n'
+            '  "max_file_size": 1000000,\n'
+            '  "fail_on_warning": false,\n'
+            '  "allowlist": [],\n'
+            '  "minimum_score": 70,\n'
+            '  "blocked_rules": ["Generic secret assignment"],\n'
+            '  "block_advisory_severity": "HIGH"\n}\n\n'
+            "JSON uses double quotes, true/false/null (lowercase), and\n"
+            "does not support comments or trailing commas. Unknown keys\n"
+            "and invalid values are rejected. Configuration files are\n"
+            "not automatically loaded from the project folder.\n\n"
+            "Full guide: docs/CONFIGURATION.md in the GitHub repository.\n"
+        )
+        help_text.insert("1.0", instructions)
+        help_text.configure(state="disabled")
+        footer = tk.Frame(window, bg=CANVAS)
+        footer.pack(fill="x", padx=20, pady=(0, 16))
+        ttk.Button(footer, text="Copy example", command=lambda: self._copy_config_example()).pack(side="left")
+        ttk.Button(footer, text="Close", command=window.destroy).pack(side="right")
+
+    def _copy_config_example(self):
+        example = {
+            "ignored_directories": [".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"],
+            "max_file_size": 1000000,
+            "fail_on_warning": False,
+            "allowlist": [],
+            "minimum_score": 70,
+            "blocked_rules": ["Generic secret assignment"],
+            "block_advisory_severity": "HIGH",
+        }
+        self.root.clipboard_clear()
+        self.root.clipboard_append(json.dumps(example, indent=2) + "\\n")
+        self.root.update()
+        messagebox.showinfo("PipelineGuard", "Example JSON copied. Paste into a .json file and select it.")
 
     def choose_config(self):
         value = filedialog.askopenfilename(
