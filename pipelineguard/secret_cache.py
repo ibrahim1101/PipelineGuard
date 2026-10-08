@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 from itertools import islice
+from typing import Callable
 from scanners.secret_scanner import RULES, scan_text, scan_directory
 from scanners.traversal import iter_files
 
@@ -48,7 +49,7 @@ def choose_scan_strategy(root: Path, ignored_directories: set[str], max_file_siz
     return "incremental"
 
 
-def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int, *, metrics: dict[str, int] | None = None) -> list[dict[str, object]]:
+def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int, *, metrics: dict[str, int] | None = None, on_finding: Callable[[dict[str, object]], None] | None = None) -> list[dict[str, object]]:
     root = root.resolve()
     signature = hashlib.sha256(repr([(name, regex.pattern, regex.flags) for name, regex in RULES]).encode()).hexdigest()
     base = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
@@ -85,6 +86,9 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                     continue
                 counts["scanned"] += 1
                 results.extend(findings)
+                if on_finding is not None:
+                    for finding in findings:
+                        on_finding(dict(finding))
                 continue
             # Retain bounded content for hashing and cache-miss scanning.
             with file_path.open("rb") as handle:
@@ -113,6 +117,9 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 counts["scanned"] += 1
             updated[relative] = {"sha256": fingerprint, "findings": findings}
             results.extend(findings)
+            if on_finding is not None:
+                for finding in findings:
+                    on_finding(dict(finding))
         except (OSError, UnicodeError):
             counts["skipped_error"] += 1
             continue
