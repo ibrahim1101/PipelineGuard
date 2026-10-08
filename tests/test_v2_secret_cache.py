@@ -25,11 +25,11 @@ def test_modified_file_rechecked_even_with_same_size_and_mtime(tmp_path, monkeyp
     target.write_text("note " * 300)
     os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
     calls = []
-    scanner = secret_cache.scan_file
+    scanner = secret_cache.scan_text
     def spy(*args, **kwargs):
         calls.append(1)
         return scanner(*args, **kwargs)
-    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    monkeypatch.setattr(secret_cache, "scan_text", spy)
     scan_secrets_incremental(root, set(), 10000)
     assert calls == [1]
 
@@ -41,7 +41,7 @@ def test_unchanged_file_reuses_cached_result(tmp_path, monkeypatch):
     scan_secrets_incremental(root, set(), 10000)
     def unexpected(*args, **kwargs):
         raise AssertionError("unchanged source rescanned")
-    monkeypatch.setattr(secret_cache, "scan_file", unexpected)
+    monkeypatch.setattr(secret_cache, "scan_text", unexpected)
     assert scan_secrets_incremental(root, set(), 10000) == []
 
 
@@ -69,11 +69,11 @@ def test_tampered_cache_entry_is_rescanned(tmp_path, monkeypatch):
     data["files"]["a.txt"]["findings"] = [{"severity": "SAFE", "rule": "unknown", "confidence": "high", "file": "a.txt", "line": 0}]
     cache.write_text(json.dumps(data))
     calls = []
-    original = secret_cache.scan_file
+    original = secret_cache.scan_text
     def spy(*args, **kwargs):
         calls.append(1)
         return original(*args, **kwargs)
-    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    monkeypatch.setattr(secret_cache, "scan_text", spy)
     assert scan_secrets_incremental(root, set(), 10000) == []
     assert calls == [1]
 
@@ -84,11 +84,11 @@ def test_changed_limit_invalidates_cache(tmp_path, monkeypatch):
     target.write_text('safe ' * 300)
     scan_secrets_incremental(root, set(), 10000)
     calls = []
-    original = secret_cache.scan_file
+    original = secret_cache.scan_text
     def spy(*args, **kwargs):
         calls.append(1)
         return original(*args, **kwargs)
-    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    monkeypatch.setattr(secret_cache, "scan_text", spy)
     scan_secrets_incremental(root, set(), 10001)
     assert calls == [1]
 
@@ -157,7 +157,7 @@ def test_large_file_reuses_verified_cache(tmp_path, monkeypatch):
     assert first["scanned"] == first["hashed"] == 1
     def unexpected(*args, **kwargs):
         raise AssertionError("large unchanged file should be reused")
-    monkeypatch.setattr(secret_cache, "scan_file", unexpected)
+    monkeypatch.setattr(secret_cache, "scan_text", unexpected)
     second = {}
     assert scan_secrets_incremental(root, set(), limit, metrics=second) == []
     assert second["reused"] == second["hashed"] == 1
