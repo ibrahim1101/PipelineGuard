@@ -64,3 +64,24 @@ def test_quick_secret_cache_metrics_and_fresh_profiles(tmp_path, monkeypatch):
     for name in ("release", "forensic"):
         result = run_scan(project, profile=name, online=False)
         assert "secret_cache" not in result
+
+
+def test_full_strategy_reports_unknown_counts_without_false_zero(tmp_path, monkeypatch):
+    project = tmp_path / "project"
+    project.mkdir()
+    for index in range(40):
+        (project / f"{index:03d}.txt").write_text("safe")
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    events = []
+    report = run_scan(project, profile="quick", online=False, progress=events.append)
+    metrics = report["secret_cache"]
+    assert metrics["strategy"] == "full"
+    assert metrics["scanned"] is None
+    assert metrics["discovered"] is None
+    assert metrics["reused"] == 0
+    complete = [event for event in events if event.stage == "secrets-complete"]
+    assert len(complete) == 1
+    assert complete[0].discovered is None
+    assert complete[0].processed is None
+    assert complete[0].cached == 0
