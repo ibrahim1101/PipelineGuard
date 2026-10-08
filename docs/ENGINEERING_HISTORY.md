@@ -303,3 +303,16 @@ User pulled v2 through `5d79af6` and executed `python -m scripts.cache_benchmark
 ## Repeated median cache benchmarking — 2026-10-08
 
 Upgraded `scripts/cache_benchmark.py` in commit `5ca5542` to benchmark independent synthetic projects with configurable file counts (`--files`, default 40 and 400) and trials (`--trials`, default 5). Each trial checks cold/warm/one-file-modified correctness, records elapsed milliseconds, and prints median cold, warm and modified durations plus median cold/warm ratio. The benchmark uses temporary directories and an isolated cache. **Windows measurements for this new repeated benchmark are pending.** Interpret median timing ratios as workload-specific rather than general production speedups.
+
+## Repeated Windows synthetic cache benchmark acceptance — 2026-10-08
+
+User ran `python -m scripts.cache_benchmark` (40 and 400 files, five trials) and `python -m scripts.cache_benchmark --files 40 200 --trials 3` on Windows PowerShell after pulling commit `47f4955`. Reported medians:
+
+| Files | Trials | Cold ms | Warm ms | One-file-modified ms | Cold/warm ratio |
+|---|---:|---:|---:|---:|---:|
+| 40 | 5 | 30.98 | 11.30 | 13.39 | 2.74x |
+| 400 | 5 | 285.96 | 104.43 | 107.08 | 2.74x |
+| 40 | 3 | 31.40 | 11.00 | 13.55 | 2.85x |
+| 200 | 3 | 145.39 | 52.23 | 63.77 | 2.78x |
+
+Every cold run scanned all files; every warm run reused all files after hashing; each modified run scanned exactly one file and reused the rest. No skipped size/changed/error events were reported. **Conclusion:** Repeated synthetic secret-cache benchmark confirms correct invalidation and workload-specific warm-run improvements. **Limitation:** This is not an end-to-end engine benchmark or proof of the same speedup for real projects; OSV/network latency, dependency scanning, filesystem variability and differing file contents are not represented. No further cache optimization should be assumed necessary without broader profiling. Stable v1.0.0 untouched.
