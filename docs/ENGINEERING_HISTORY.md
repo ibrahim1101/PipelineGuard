@@ -614,3 +614,19 @@ python -m scripts.engine_timing --runs 10 --summary
 **Callback tests:** 4 passed in 2.24s. **Full suite:** 142 passed, 2 skipped, 0 failed in 13.80s. Skips: desktop graphical display unavailable and Windows symlink creation privileges unavailable.
 
 **Offline ten-run medians (ms):** setup 30.31, dependencies 7.33, secrets 31.12, Git context 60.70 (range 55.71–67.24), total 129.19 (range 122.21–144.72). Prior independent run: Git context 54.67 and total 118.20 ms. The current medians are higher by approximately 11.0% and 9.3% respectively; differences are not controlled regression evidence. Warm cache: discovered 87, hashed 60, scanned 27, reused 60, no skipped/error counters; first run scanned 31/reused 56. All scan statuses `BLOCKED` due to policy, not execution errors. OSV network latency excluded. **This benchmark measures the ordinary incremental path, not the opt-in streaming-full path.** Next: benchmark both paths and integrate live events with incremental secret-cache scans while maintaining verified-content safeguards.
+
+
+## Incremental-cache live finding delivery — 2026-10-09
+
+Commits `624d431` and `69d867b` add an optional per-finding callback to `scan_secrets_incremental` and wire it through `run_scan`, retaining the normal profile-based full-vs-incremental selection. Callback delivery occurs only after per-file metadata/content verification and before final report assembly. Allowlist filtering is applied by the engine; secret findings are not emitted a second time during report assembly. Cached entries remain validated using `_safe_cached_findings`. Commit `91c8b63` adds cold/warm cache parity and changed-file suppression regression tests. **Not yet validated on user's Windows machine.**
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_finding_callback.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Remaining: validate Windows results, ensure callback exceptions and cached findings have robust tests, and implement a thread-safe SOC desktop event queue. Offline benchmark excludes OSV network time.
