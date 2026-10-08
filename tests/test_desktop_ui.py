@@ -170,7 +170,7 @@ def test_scrollable_workspace_and_idle_progress(desktop):
     desktop.root.update_idletasks()
     assert desktop.workspace.master is desktop.workspace_canvas
     assert desktop.workspace_canvas.master is desktop.workspace_container
-    assert desktop.progress.cget("mode") == "determinate"
+    assert str(desktop.progress.cget("mode")) == "determinate"
     assert float(desktop.progress.cget("value")) == 0
     assert desktop.workspace_canvas.bbox("all") is not None
 
@@ -181,5 +181,5 @@ def test_scan_error_resets_idle_progress(desktop):
     desktop.scan_button.state(["disabled"])
     with patch("pipelineguard.desktop.messagebox.showerror"):
         desktop._process_scan_event("error", "Synthetic error")
-    assert desktop.progress.cget("mode") == "determinate"
+    assert str(desktop.progress.cget("mode")) == "determinate"
     assert float(desktop.progress.cget("value")) == 0
