@@ -148,7 +148,7 @@ def test_branding_is_above_navigation_and_workspace(desktop):
     assert header is not desktop.content_frame
     assert desktop.content_frame in desktop.root.pack_slaves()
     assert desktop.sidebar.master is desktop.content_frame
-    assert desktop.workspace.master is desktop.content_frame
+    assert desktop.workspace.master is desktop.workspace_canvas
     assert header.winfo_y() <= desktop.content_frame.winfo_y()
 
 
