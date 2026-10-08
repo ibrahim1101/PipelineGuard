@@ -212,3 +212,20 @@ def test_metrics_count_oversize_and_scanned_together(tmp_path, monkeypatch):
     assert counts["skipped_size"] == 1
     assert counts["hashed"] == 1
     assert counts["reused"] == 0
+
+
+def test_cache_write_error_keeps_scan_results(tmp_path, monkeypatch):
+    from pathlib import Path
+    root, target = _setup(tmp_path, monkeypatch)
+    target.write_text("safe " * 300)
+    original = Path.write_text
+
+    def fail_cache_write(path, *args, **kwargs):
+        if path.suffix == ".tmp":
+            raise OSError("cache unavailable")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", fail_cache_write)
+    counts = {}
+    assert scan_secrets_incremental(root, set(), 10000, metrics=counts) == []
+    assert counts["scanned"] == 1
