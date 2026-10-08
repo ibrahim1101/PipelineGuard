@@ -348,3 +348,15 @@ Each run discovered 84 files, hashed 57, and returned `status=BLOCKED` (policy r
 ## Report-stage timing decomposition — 2026-10-08
 
 After Windows stage profiling showed `report_ms` at 119.10, 106.33, and 116.59 ms across three offline Standard scans, instrumented `pipelineguard/engine.py` in commit `9f3cf21` to emit opt-in `report_build_ms`, `git_context_ms` (when the profile collects Git context), and `report_other_ms` (remainder of report stage) alongside existing `report_ms`. This isolates report construction from Git metadata work without changing security findings or existing public call behavior. **User-side validation and regression results for this change are pending**. Next: rerun `python -m scripts.engine_timing` and `python -m pytest -q`, then optimize only the measured bottleneck.
+
+## Git-context bottleneck confirmed — Windows validation, 2026-10-08
+
+User pulled through commit `51c8f99`, ran `python -m scripts.engine_timing` (offline Standard profile) and `python -m pytest -q` on Windows PowerShell. Timings (ms):
+
+| Run | Setup | Dependencies | Secrets | Report build | Git context | Report total | Other report | Overall |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 29.34 | 7.89 | 36.07 | 0.01 | 132.17 | 132.21 | 0.03 | 205.52 |
+| 2 | 29.15 | 7.60 | 28.27 | 0.01 | 127.05 | 127.08 | 0.02 | 192.11 |
+| 3 | 28.34 | 7.50 | 28.24 | 0.01 | 123.04 | 123.08 | 0.02 | 187.17 |
+
+Offline OSV reported 0.00 ms. Cache: 84 discovered, 57 hashed each run; scanned/reused 29/55 then 27/57 and 27/57; all skip/error counters zero. Git context occupied ~65.7% of third scan, while `build_report` was effectively negligible. **Conclusion:** prior broad `report_ms` bottleneck was Git context collection, not report generation. `status=BLOCKED` is the security policy result. **Regression:** `129 passed, 1 skipped in 22.55s`, zero failures. Next: inspect `pipelineguard/git_context.py` and reduce Git command overhead without losing correctness; run before/after benchmarks. Stable v1.0.0 unchanged.
