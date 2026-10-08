@@ -11,7 +11,6 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 
-from pipelineguard.wordmark import draw_wordmark, draw_cat_shield
 from pipelineguard.engine import run_scan
 from pipelineguard.reporting import write_json_report, write_html_report, write_sarif_report
 from pipelineguard.theme import (
@@ -67,15 +66,12 @@ class Desktop:
 
     def _build_shell(self):
         """SOC navigation shell; existing scanner widgets remain intact."""
-        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=240)
+        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        brand = tk.Canvas(self.sidebar, width=228, height=102, bg=OLIVE_DEEP,
-                          highlightthickness=0)
-        brand.pack(anchor="w", padx=6, pady=(14, 12))
-        draw_cat_shield(brand, 8, 16, scale=2, color=OLIVE_LIGHT)
-        draw_wordmark(brand, 65, 31, scale=2, color=OLIVE_LIGHT)
-        self.sidebar_brand = brand
+        tk.Label(self.sidebar, text="◈  PipelineGuard", bg=OLIVE_DEEP,
+                 fg=OLIVE_LIGHT, font=("Segoe UI", 14, "bold")).pack(
+                     anchor="w", padx=12, pady=(24, 30))
         self.workspace = tk.Frame(self.root, bg=CANVAS)
         self.workspace.pack(side="left", fill="both", expand=True)
         navigation = (
@@ -123,11 +119,8 @@ class Desktop:
         header = tk.Frame(self.workspace, bg=OLIVE_DEEP, height=112)
         header.pack(fill="x")
         header.pack_propagate(False)
-        wordmark = tk.Canvas(header, width=520, height=48, bg=OLIVE_DEEP,
-                             highlightthickness=0)
-        wordmark.pack(anchor="w", padx=28, pady=(15, 0))
-        draw_wordmark(wordmark, 0, 4, scale=4, color=OLIVE_LIGHT)
-        self.header_wordmark = wordmark
+        tk.Label(header, text="PipelineGuard", bg=OLIVE_DEEP, fg=WHITE,
+                 font=("Segoe UI", 30, "bold")).pack(anchor="w", padx=28, pady=(20, 0))
         tk.Label(header, text="Secure every build before it reaches production.",
                  bg=OLIVE_DEEP, fg=OLIVE_LIGHT, font=("Segoe UI", 11)).pack(anchor="w", padx=31)
         ttk.Button(header, text="About", command=self.show_about).place(relx=1.0, x=-28, y=32, anchor="e")
