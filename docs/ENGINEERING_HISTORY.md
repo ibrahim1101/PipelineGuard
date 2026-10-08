@@ -245,3 +245,13 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Result:** User confirms the guided configuration workflow worked and the configured scan succeeded. This is a **user-reported manual success**, not a captured application log or automated test. Clipboard example copying was part of the suggested steps, but no independent detailed output was supplied; do not claim byte-for-byte clipboard verification. No new benchmark or packaging evidence. **Lesson:** In-app discoverable documentation and a real selectable example eliminate uncertainty around advanced options; validate UX through both automated regressions and physical Windows acceptance.
 
 **Remaining:** Broader v2 engine roadmap, dedicated UI regression automation where feasible, packaging/installer acceptance for the v2 branch. Stable v1.0.0 untouched.
+
+## 18. v2 desktop profile, progress and cache UI — 8 October 2026
+
+**Objective:** Surface already-implemented engine scan profiles, progress events and cache metrics to desktop users. Previously `pipelineguard/desktop.py` called `run_scan` without a profile or progress callback; the UI displayed only an indeterminate progress bar.
+
+**Source audit:** Confirmed `pipelineguard/profiles.py` has five profiles (Quick, Standard, Deep, Release, Forensic); `pipelineguard/engine.py` emits `ProgressEvent` and `secret_cache` telemetry for Quick/Standard/Deep; full strategy reports unknown counters as `None`. Quick explicitly disables online intelligence through the profile, independent of checkbox selection.
+
+**Implementation:** Commit `29c78107` adds a read-only profile selector, sends worker-thread progress events to the existing Tk queue, renders stage labels and fingerprint processed/discovered/cached counters, and shows final secret-cache strategy/scanned/reused metrics. Unknown counters are labeled “unknown” rather than misleadingly zero; Release/Forensic indicate metrics unavailable. The progress bar remains indeterminate because scan stages lack a trustworthy overall percentage.
+
+**Status:** GitHub commit created; **no fresh pytest, Windows GUI, or installer validation yet**. Verify stage updates, all five profiles, checkbox semantics, error handling and small-window layout. In particular, confirm the increased controls fit the 900px minimum window width. Stable v1.0.0 untouched. **Lesson:** UI progress must respect nullable telemetry and marshal worker events through the main Tk thread.
