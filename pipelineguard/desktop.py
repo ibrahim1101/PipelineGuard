@@ -61,6 +61,7 @@ class Desktop:
         self._build_analytics()
         self._build_charts()
         self._build_findings()
+        self._build_pixel_cat()
         self.root.after(100, self.poll)
 
     def _build_shell(self):
@@ -335,6 +336,46 @@ class Desktop:
         if not findings:
             severity.create_text(12, 57, anchor="w", text="No findings detected", fill=SAFE)
 
+    def _build_pixel_cat(self):
+        """Tiny coding-cat scan indicator; no external image assets."""
+        self.cat_canvas = tk.Canvas(self.sidebar, width=96, height=68, bg=OLIVE_DEEP,
+                                    highlightthickness=0)
+        self.cat_canvas.pack(side="bottom", pady=(0, 12))
+        self.cat_frame = 0
+        self._render_pixel_cat(False)
+
+    def _render_pixel_cat(self, active):
+        canvas = self.cat_canvas
+        canvas.delete("all")
+        scale = 4
+        # Small pixel-art cat with ears, face and a laptop.
+        pixels = [
+            "  G     G  ",
+            " GGG   GGG ",
+            " GGGGGGGGG ",
+            " GWWGWWGWG ",
+            " GGGGPGGGG ",
+            "  GGGGGGG  ",
+            "  BBBBBBB  ",
+            "  BLL LBB  ",
+            "  BBBBBBB  ",
+            "   BBBBB   ",
+        ]
+        palette = {"G": OLIVE_LIGHT, "W": WHITE, "P": WARNING,
+                   "B": OLIVE_MID, "L": OLIVE_DEEP}
+        offset_x, offset_y = 23, 4
+        for y, line in enumerate(pixels):
+            for x, char in enumerate(line):
+                if char in palette:
+                    canvas.create_rectangle(offset_x + x * scale, offset_y + y * scale,
+                                            offset_x + (x + 1) * scale, offset_y + (y + 1) * scale,
+                                            fill=palette[char], outline="")
+        dots = "." * (self.cat_frame % 4) if active else ""
+        canvas.create_text(48, 55, text=("SCANNING" + dots if active else "CAT ON DUTY"),
+                           fill=OLIVE_LIGHT, font=("Consolas", 8, "bold"))
+        if active:
+            self.cat_frame += 1
+
     def _build_findings(self):
         self._label(self.workspace, "Security findings", 15, OLIVE_LIGHT, True).pack(
             anchor="w", padx=28, pady=(0, 8))
@@ -503,6 +544,7 @@ class Desktop:
         self.detail.configure(state="disabled")
         self.cache_status.configure(text="Cache: scanning…")
         self.progress.start(12)
+        self._render_pixel_cat(True)
 
         project_path = Path(self.folder.get())
         config_path = Path(self.config.get()) if self.config.get() else None
@@ -543,6 +585,7 @@ class Desktop:
             return True
         self.scan_button.state(["!disabled"])
         self.progress.stop()
+        self._render_pixel_cat(False)
         if kind == "error":
             self.status.set("Scan failed")
             self.status_label.configure(text=value, fg=BLOCKED)
@@ -602,6 +645,8 @@ class Desktop:
                 self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
                 self.refresh_findings()
         finally:
+            if self.scan_button.instate(["disabled"]) and self.cat_frame % 5 == 0:
+                self._render_pixel_cat(True)
             self.root.after(100, self.poll)
 
     def clear_filters(self):
