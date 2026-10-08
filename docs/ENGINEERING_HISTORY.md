@@ -403,3 +403,50 @@ Documentation failure and recovery: first attempt to record this milestone was b
 The user pulled commit `7bde773` and ran `python -m scripts.engine_timing --runs 10 --summary` successfully. All ten offline Standard-profile scans returned policy status `BLOCKED` without execution errors. Median stage times in milliseconds: setup 28.19 (range 27.22–29.95), dependencies 7.21 (6.99–7.58), secrets 31.52 (28.41–36.57), Git context 61.87 (60.97–66.35), total 128.78 (126.67–138.14). OSV network latency was excluded. Git context is the largest measured stage; further changes need controlled A/B testing and preserved redaction and dirty-state correctness. Secret-cache counts: 85 discovered and 58 hashed on every run; run 1 scanned/reused 29/56, runs 2–10 27/58; no skipped-size/changed/error files.
 
 `python -m pytest -q -rs` returned **136 passed, 2 skipped, 0 failed in 20.03s**. The skips were `tests/test_desktop_ui.py:42` (graphical display unavailable) and `tests/test_traversal.py:24` (Windows symlink creation requires Developer Mode or elevated privileges). The earlier 137 passed/1 skipped result differed by one environment-dependent skip, not by any reported failure. Benchmark summary feature is now validated on Windows. No runtime optimization or speedup is claimed by this documentation milestone.
+
+
+## Windows PowerShell command archive — 2026-10-08
+
+This section preserves the exact command sequences used or requested in the latest Git-context regression and performance milestones. Commands are intended for PowerShell in the local Windows checkout. Earlier historical milestones remain in this append-only journal; where an exact older command was not recorded, do not reconstruct it as if executed.
+
+### Pull and identify development branch
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+git log -1 --oneline
+```
+
+### Git-context regression validation (user confirmed: 8 passed)
+
+```powershell
+python -m pytest -q tests/test_git_context_regression.py
+python -m pytest -q
+python -m scripts.engine_timing
+```
+
+User-observed output: 8 passed in 4.77s; full suite 137 passed, 1 skipped in 24.79s; three-run offline timing total 156.60, 152.59, 143.70 ms.
+
+### Benchmark summary milestone (user confirmed)
+
+```powershell
+python -m scripts.engine_timing --runs 10 --summary
+python -m pytest -q -rs
+```
+
+User-observed output: ten-run median total 128.78 ms, median Git context 61.87 ms; full suite 136 passed, 2 skipped in 20.03s. Skip reasons: no graphical display; Windows symlink privileges unavailable.
+
+### Upcoming Git subprocess investigation (not yet run)
+
+```powershell
+git status --porcelain
+git rev-parse HEAD
+git branch --show-current
+git config --get remote.origin.url
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+**Security note:** The last command reading remote.origin.url may print credentials if the remote URL embeds them. Do not paste its raw output into chats or logs; redact usernames, tokens, and passwords first. Prefer using the application's redacted Git context for shared diagnostics.
+
+Future milestones must append the exact Windows validation commands alongside observed results, failures, fixes, and commit identifiers.
