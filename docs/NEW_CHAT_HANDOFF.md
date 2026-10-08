@@ -95,3 +95,8 @@ python -m scripts.engine_timing --runs 10 --summary
 ```
 
 Next priority: investigate Git subprocess stage costs with controlled profiling and maintain correctness and credential redaction. Do not modify stable v1.0.0.
+
+
+## v2.0 scope decision — 2026-10-08
+
+User explicitly decided to consolidate all previously proposed v2.1 work into **v2.0**, with no intermediate v2.1 release planned. Mandatory v2.0 scope now includes the SOC-style desktop redesign, streaming findings, advanced analyzer-result caching, and dependency reachability analysis in addition to the existing v2 engine work. Complete security hardening, cross-platform and desktop validation, packaging, CI, documentation, and release acceptance before tagging v2.0. **v3.0** is reserved for subsequent optimization and further capabilities after v2.0 ships. This is a scope decision, not a claim that the additional features are implemented. Continue appending exact PowerShell commands, validation results, failures, and fixes to the engineering history.
