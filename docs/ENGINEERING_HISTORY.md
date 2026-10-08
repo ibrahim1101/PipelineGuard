@@ -698,3 +698,8 @@ User visually confirmed the new SOC chart panels and requested continued develop
 ## Regression: desktop startup and pytest collection SyntaxError — 2026-10-09
 
 **Failure:** After event batching commits `03d9dfb`/`d437a78`, user ran `python -m pytest -q -rs` on Windows and test collection failed with `SyntaxError: 'return' outside function` at `pipelineguard/desktop.py:585`. `python -m pipelineguard.desktop` also failed before opening the window. **Root cause:** indentation-normalization edit left the final `return False` of `_process_scan_event` at four spaces (class level), not eight spaces (method body). **Fix:** commit `53e207d` indents the return into `_process_scan_event` and restores blank line before `poll`. This was an assistant-introduced regression; no user environment issue. **Verification pending** until CI/local pytest and launch are rerun. Suggested commands: `python -m py_compile pipelineguard/desktop.py`; `python -m pytest -q -rs`; `python -m pipelineguard.desktop`. Prevention: syntax compile and tests must run before claiming a desktop refactor is ready.
+
+
+## SOC pixel-cat scan indicator — 2026-10-09
+
+After user confirmed the desktop syntax correction appeared and asked to continue, commits `4eb0b06` and `80df897` added a small pixel-art cat with laptop to the sidebar using built-in Tk Canvas shapes. Idle state displays CAT ON DUTY; scan state displays SCANNING with changing dots, updated at most every five 100ms poll cycles. No large cat illustrations, third-party image assets, or engine changes. Commit `94fa25f` adds a Tk regression test for idle/active state. **CI and Windows tests not yet verified.** Next: user-requested top-left cyber-cat shield branding, visual layout QA, packaging and workflow validation.
