@@ -67,6 +67,9 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
             results.extend(findings)
         except (OSError, UnicodeError):
             continue
+    # Avoid rewriting a large cache JSON file on every unchanged warm scan.
+    if updated == previous and cache.get("version") == 1:
+        return results
     try:
         store.parent.mkdir(parents=True, exist_ok=True)
         temporary = store.with_suffix(".tmp")
