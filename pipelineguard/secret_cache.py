@@ -36,6 +36,8 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
     except (OSError, ValueError, TypeError):
         cache = {}
     previous = cache.get("files", {}) if isinstance(cache.get("files"), dict) else {}
+    # Cache entries are only hints: unchanged metadata is insufficient for trust.
+    # Continue hashing content to detect same-size/same-mtime modifications.
     updated = {}
     results = []
     for file_path in iter_files(root, ignored_directories):
