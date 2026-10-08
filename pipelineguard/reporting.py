@@ -51,6 +51,26 @@ def write_html_report(report: dict[str, Any], output: Path) -> None:
     color = SAFE if report["status"] == "SAFE" else BLOCKED
     profile = escape(str(report.get("scan_profile") or "Not specified"))
     scanned_at = escape(str(report.get("scanned_at") or "Not recorded"))
+    cache = report.get("secret_cache")
+    cache_section = ""
+    if isinstance(cache, dict):
+        def count(key: str) -> str:
+            value = cache.get(key)
+            return escape(str(value)) if value is not None else "Not measured"
+        strategy = escape(str(cache.get("strategy") or "Unknown"))
+        cache_section = (
+            "<section><h2>Secret scan performance</h2>"
+            "<p>Strategy: <strong>" + strategy + "</strong>"
+            " · Discovered: " + count("discovered")
+            + " · Scanned: " + count("scanned")
+            + " · Reused: " + count("reused")
+            + " · Hashed: " + count("hashed")
+            + " · Skipped (size): " + count("skipped_size")
+            + " · Skipped (changed): " + count("skipped_changed")
+            + " · Skipped (error): " + count("skipped_error")
+            + "</p><p>Files below the cache threshold are scanned directly on each run; "
+              "a zero reuse count does not by itself indicate a cache failure.</p></section>"
+        )
     advisory_sections = ""
     for item in report["findings"]:
         if not item.get("id"):
@@ -72,7 +92,7 @@ body{{color:{OLIVE_DARK};background:#FAFCF5}}h1{{color:{OLIVE_DARK};border-botto
 <p>Scan profile: <strong>{profile}</strong> · Scanned at (UTC): <strong>{scanned_at}</strong></p>
 <p>Total findings: {report['summary']['total_findings']} · Critical: {report['summary']['critical']} · Warnings: {report['summary']['warnings']}</p>
 <table><thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Package</th><th>Advisory IDs</th><th>Remediation</th></tr></thead><tbody>{rows}</tbody></table>
-{advisory_sections}</body></html>"""
+{cache_section}{advisory_sections}</body></html>"""
     output.write_text(html, encoding="utf-8")
 
 
