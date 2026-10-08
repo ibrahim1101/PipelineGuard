@@ -79,3 +79,19 @@ python -m scripts.engine_timing
 ## Suggested new-chat opening message
 
 'Continue PipelineGuard v2 development from https://github.com/ibrahim1101/PipelineGuard on branch feat/v2-engine-integration. First read docs/NEW_CHAT_HANDOFF.md and docs/ENGINEERING_HISTORY.md. Our latest Windows validation was 129 passed, 1 skipped; Git context parallelization reduced the third offline scan from 187.17 ms to 129.20 ms. Next, implement dedicated Git-context correctness regression tests, commit them to the v2 branch, and update the engineering journal. Do not touch stable v1.0.0. Give me PowerShell commands to validate each milestone.'
+
+
+## Updated validation and command-history pointer — 2026-10-08
+
+Latest Windows confirmation: Git-context regression suite **8 passed in 4.77s**; full suite initially **137 passed, 1 skipped** and most recently **136 passed, 2 skipped in 20.03s** (environment-related skips: graphical display and symlink permissions). The ten-run offline Standard benchmark median was **128.78 ms total**, including **61.87 ms Git context**, **31.52 ms secrets**, and **28.19 ms setup**. Benchmark summary feature is validated; optimization not yet claimed. The exact recent PowerShell commands and outcomes are archived in `docs/ENGINEERING_HISTORY.md` under **Windows PowerShell command archive — 2026-10-08**. For each future milestone, append actual commands, results, failures, fixes, and commit hashes.
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_git_context_regression.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Next priority: investigate Git subprocess stage costs with controlled profiling and maintain correctness and credential redaction. Do not modify stable v1.0.0.
