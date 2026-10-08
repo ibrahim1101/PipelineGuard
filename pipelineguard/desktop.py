@@ -143,7 +143,7 @@ class Desktop:
         elif destination == "Reports":
             self.export()
         elif destination == "Settings":
-            self.show_config_help()
+            self.show_settings()
         elif destination == "OSV Lookup":
             messagebox.showinfo("OSV Lookup", "Enable live OSV lookup in the scan options, then scan a project.")
         elif destination == "Dependencies":
@@ -189,21 +189,107 @@ class Desktop:
         ttk.Entry(toolbar, textvariable=self.folder, width=36).pack(side="right")
 
     def show_about(self):
+        """Dedicated development-version About dialog."""
         window = tk.Toplevel(self.root)
-        window.title("About PipelineGuard")
-        window.geometry("440x300")
+        window.title("PipelineGuard — About")
+        window.geometry("480x340")
         window.resizable(False, False)
         window.configure(bg=CANVAS)
-        self._label(window, "PipelineGuard", 22, OLIVE_LIGHT, True).pack(pady=(28, 4))
-        self._label(window, "DevSecOps security scanner", 11, MUTED, bg=CANVAS).pack()
-        text = (
-            "Version 1.0.0\n\n"
-            "Scan projects for exposed secrets, dependency issues, "
-            "and release-blocking security findings.\n\n"
-            "Desktop · Docker · JSON · HTML · SARIF · OSV"
-        )
-        self._label(window, text, 10, INK, bg=CANVAS, justify="center", wraplength=360).pack(pady=24)
-        ttk.Button(window, text="Close", command=window.destroy).pack()
+        brand = tk.Frame(window, bg=CANVAS)
+        brand.pack(pady=(25, 10))
+        tk.Label(brand, image=self.cat_logo, bg=CANVAS).pack(side="left", padx=(0, 10))
+        title = tk.Frame(brand, bg=CANVAS)
+        title.pack(side="left")
+        self._label(title, "PipelineGuard", 22, OLIVE_LIGHT, True, bg=CANVAS).pack(anchor="w")
+        self._label(title, "Secure every build before it reaches production.",
+                    9, MUTED, bg=CANVAS).pack(anchor="w")
+        info = tk.Frame(window, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        info.pack(fill="x", padx=38, pady=12)
+        for label, value in (
+            ("Version", "2.0.0 (unreleased development)"),
+            ("License", "MIT License"),
+            ("Platform", "Windows desktop / Python Tk"),
+            ("Repository", "github.com/ibrahim1101/PipelineGuard"),
+        ):
+            row = tk.Frame(info, bg=CARD)
+            row.pack(fill="x", padx=16, pady=7)
+            self._label(row, label, 10, MUTED, bg=CARD).pack(side="left")
+            self._label(row, value, 10, INK, bg=CARD).pack(side="right")
+        ttk.Button(window, text="Close", command=window.destroy).pack(pady=(4, 10))
+
+    def show_settings(self):
+        """Settings dialog with live controls shared with the scan toolbar."""
+        window = tk.Toplevel(self.root)
+        window.title("PipelineGuard — Settings")
+        window.geometry("720x475")
+        window.minsize(620, 410)
+        window.configure(bg=CANVAS)
+        sidebar = tk.Frame(window, bg=OLIVE_DEEP, width=172)
+        sidebar.pack(side="left", fill="y")
+        sidebar.pack_propagate(False)
+        content = tk.Frame(window, bg=CANVAS)
+        content.pack(side="left", fill="both", expand=True, padx=18, pady=18)
+        heading = self._label(content, "General", 17, INK, True, bg=CANVAS)
+        heading.pack(anchor="w", pady=(0, 15))
+        panel = tk.Frame(content, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        panel.pack(fill="both", expand=True)
+
+        def label(text):
+            self._label(panel, text, 10, MUTED, bg=CARD).pack(
+                anchor="w", padx=16, pady=(14, 4))
+
+        def section(name):
+            for child in panel.winfo_children():
+                child.destroy()
+            heading.configure(text=name)
+            if name == "General":
+                label("Default scan profile")
+                ttk.Combobox(panel, textvariable=self.scan_profile, state="readonly",
+                             values=("Quick", "Standard", "Deep", "Release", "Forensic"),
+                             width=20).pack(anchor="w", padx=16)
+                label("Project folder")
+                ttk.Entry(panel, textvariable=self.folder).pack(fill="x", padx=16)
+                ttk.Button(panel, text="Choose project", command=self.choose).pack(
+                    anchor="w", padx=16, pady=10)
+            elif name == "Scan Engine":
+                label("Scan behavior")
+                self._label(panel, "Scan profiles control depth and caching.",
+                            10, INK, bg=CARD).pack(anchor="w", padx=16)
+                ttk.Button(panel, text="Configuration help",
+                           command=self.show_config_help).pack(anchor="w", padx=16, pady=12)
+                ttk.Button(panel, text="Choose config file",
+                           command=self.choose_config).pack(anchor="w", padx=16)
+            elif name == "OSV Lookup":
+                label("Vulnerability intelligence")
+                tk.Checkbutton(panel, text="Enable live OSV vulnerability lookup",
+                               variable=self.online, bg=CARD, fg=INK,
+                               activebackground=CARD, activeforeground=INK,
+                               selectcolor=OLIVE_DARK).pack(anchor="w", padx=16)
+                self._label(panel, "Online requests use dependency names and versions.",
+                            9, MUTED, bg=CARD).pack(anchor="w", padx=16, pady=8)
+            elif name == "Reports":
+                label("Export and scan history")
+                ttk.Button(panel, text="Export latest report",
+                           command=self.export).pack(anchor="w", padx=16, pady=8)
+                ttk.Button(panel, text="Open reports folder",
+                           command=self.open_report_folder).pack(anchor="w", padx=16)
+            elif name == "Appearance":
+                label("Active appearance")
+                self._label(panel, "Dark olive SOC theme",
+                            11, OLIVE_LIGHT, True, bg=CARD).pack(anchor="w", padx=16)
+                self._label(panel, "The approved visual design is under development.",
+                            9, MUTED, bg=CARD).pack(anchor="w", padx=16, pady=8)
+            else:
+                label("Application information")
+                ttk.Button(panel, text="About PipelineGuard",
+                           command=self.show_about).pack(anchor="w", padx=16, pady=8)
+
+        for name in ("General", "Scan Engine", "OSV Lookup", "Reports", "Appearance", "About"):
+            tk.Button(sidebar, text=name, command=lambda name=name: section(name),
+                      anchor="w", bg=OLIVE_DEEP, fg=INK, activebackground=OLIVE_DARK,
+                      activeforeground=WHITE, relief="flat", borderwidth=0,
+                      font=("Segoe UI", 10), padx=14, pady=12).pack(fill="x", padx=8, pady=2)
+        section("General")
 
     def _build_controls(self):
         """Initialize shared scan state; secondary actions live in a compact tools row."""
