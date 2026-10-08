@@ -376,3 +376,7 @@ User pulled through `2d4c7ee` and ran `python -m scripts.engine_timing` and `pyt
 | 3 | 28.46 | 7.34 | 33.78 | 0.01 | 59.58 | 59.61 | 129.20 | 27 / 57 |
 
 Each run discovered 84 files, hashed 57; zero skipped_size, skipped_changed, or skipped_error. All runs returned policy `BLOCKED`, not an execution error; OSV offline stage 0.00 ms. Compared with immediately preceding serial Git baseline, Git context improved 132.17→72.06 ms (run 1), 127.05→67.38 ms (run 2), 123.04→59.58 ms (run 3), or ~45.5%, ~47.0%, ~51.6% reductions. Total scan time improved 205.52→147.23 ms (~28.4%), 192.11→133.60 ms (~30.5%), 187.17→129.20 ms (~31.0%). These are three sequential single-machine offline measurements, not a controlled multi-trial statistical benchmark or online OSV measurements. **Regression validation:** `129 passed, 1 skipped in 20.52s`, zero failures; skip reason not verified in this run. Optimization accepted provisionally on observed results; further Git status and subprocess work should retain dirty/untracked accuracy, credential redaction, and regression coverage.
+
+## New-chat handoff refreshed — 2026-10-08
+
+Updated `docs/NEW_CHAT_HANDOFF.md` in commit `0d82d89` with current v2 state, Windows test and benchmark results, code entry points, known limitations, immediate Git-context correctness testing milestone, validation commands, and a ready-to-paste new-chat opening prompt. This is documentation-only; no application logic changed. Future work should update both the handoff and this append-only journal as appropriate.
