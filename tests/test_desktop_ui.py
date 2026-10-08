@@ -164,3 +164,22 @@ def test_recent_scans_use_real_line_breaks(desktop, tmp_path):
     assert "\\n" not in value
     assert "\n" in value
     assert "first-project" in value and "second-project" in value
+
+
+def test_scrollable_workspace_and_idle_progress(desktop):
+    desktop.root.update_idletasks()
+    assert desktop.workspace.master is desktop.workspace_canvas
+    assert desktop.workspace_canvas.master is desktop.workspace_container
+    assert desktop.progress.cget("mode") == "determinate"
+    assert float(desktop.progress.cget("value")) == 0
+    assert desktop.workspace_canvas.bbox("all") is not None
+
+
+def test_scan_error_resets_idle_progress(desktop):
+    desktop.progress.configure(mode="indeterminate")
+    desktop.progress.start(12)
+    desktop.scan_button.state(["disabled"])
+    with patch("pipelineguard.desktop.messagebox.showerror"):
+        desktop._process_scan_event("error", "Synthetic error")
+    assert desktop.progress.cget("mode") == "determinate"
+    assert float(desktop.progress.cget("value")) == 0
