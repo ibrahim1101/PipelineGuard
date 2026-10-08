@@ -86,3 +86,13 @@ def test_changed_limit_invalidates_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(secret_cache, "scan_file", spy)
     scan_secrets_incremental(root, set(), 101)
     assert calls == [1]
+
+
+def test_unchanged_cache_is_not_rewritten(tmp_path, monkeypatch):
+    root, target = _setup(tmp_path, monkeypatch)
+    scan_secrets_incremental(root, set(), 100)
+    name = hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json"
+    cache = tmp_path / "cache" / "PipelineGuard" / "secret-findings" / name
+    before = cache.stat().st_mtime_ns
+    assert scan_secrets_incremental(root, set(), 100) == []
+    assert cache.stat().st_mtime_ns == before
