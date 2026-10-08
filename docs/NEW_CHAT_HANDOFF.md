@@ -1,67 +1,81 @@
-# PipelineGuard — New Chat Handoff
+# PipelineGuard — New Chat Development Handoff
 
-**Updated:** 8 October 2026  
-**Repository:** https://github.com/ibrahim1101/PipelineGuard  
-**Active development branch:** `feat/v2-engine-integration`  
-**Stable release:** v1.0.0 — preserve it; do not merge or release v2 without explicit validation.
+Updated: 2026-10-08
+Repository: https://github.com/ibrahim1101/PipelineGuard
+Active branch: `feat/v2-engine-integration`
+Stable release: v1.0.0 (do not modify unless explicitly requested)
 
-## Read these first in a fresh conversation
+## Purpose
 
-1. [Engineering history, failures and tests](ENGINEERING_HISTORY.md) — living record, includes benchmark results and regression history.
-2. [Project roadmap](../ROADMAP.md) — planned scope, not a verified completion checklist.
-3. [README](../README.md) — current product description.
-4. [Changelog](../CHANGELOG.md) — stable release history.
-5. [GitHub Actions](https://github.com/ibrahim1101/PipelineGuard/actions) — verify current status instead of assuming past CI success still applies.
+This document is the quick-start source of truth for resuming PipelineGuard development in a fresh ChatGPT conversation. The append-only detailed development and testing journal is `docs/ENGINEERING_HISTORY.md`. Read both before changing code. Confirm current repository contents and commits rather than assuming earlier changes are present.
 
-## Last confirmed technical checkpoint
+## Product and architecture
 
-- Last fully validated **code** commit: `b03c4699`.
-- User's Windows command: `python -m pytest -rs -q`.
-- Result: **120 passed, 1 skipped in 17.03 seconds**.
-- Expected skip: Windows symlink creation needs Developer Mode or elevated privileges.
-- GitHub Linux security scan: https://github.com/ibrahim1101/PipelineGuard/actions/runs/37771496724 — success.
-- GitHub Windows desktop validation: https://github.com/ibrahim1101/PipelineGuard/actions/runs/37771496764 — success.
-- Documentation-only commits after this checkpoint do **not** imply new code validation. Always check the latest branch HEAD and workflows.
+PipelineGuard is a DevSecOps security scanning tool with a Windows standalone desktop application (Python/Tkinter), CLI and Docker usage. v1.0.0 provides secret and dependency/OSV scanning, reports including JSON, HTML and SARIF, and Windows installer workflows. v2 development includes scan profiles (Quick, Standard, Deep, Release, Forensic), progress telemetry, fingerprint cache, content-verified incremental secret findings cache, baseline and Git context support, OSV advisory deduplication and enhanced reporting.
 
-## Implemented in v2 branch
+## Current state (user-validated on Windows)
 
-- Shared scan engine, scan profiles (Quick/Standard/Deep/Release/Forensic).
-- Bounded parallel fingerprint orchestration, persistent SHA-256 fingerprints and progress events.
-- Git context with credential redaction and baseline finding comparisons.
-- Separate verified secret-finding cache with cache integrity checks.
-- Tiny-file direct scan and adaptive full/incremental strategy.
-- Telemetry for incremental scanning and nullable unavailable counters for full scanning.
-- Tests for tampered/corrupt caches, same-size changes, growing files, race conditions and cache write failures.
-- Benchmark script: `scripts/benchmark_v2_secret_cache.py`.
+Latest confirmed tests: `python -m pytest -q` -> **129 passed, 1 skipped in 20.52s**, zero failures. Skip reason was not verified in that particular run.
 
-## Important unresolved work
+Profiling command: `python -m scripts.engine_timing`. This runs offline Standard-profile scans and excludes online OSV network latency.
 
-- Audit downstream consumers of nullable secret scan telemetry.
-- Finish release-readiness regression matrix and documentation.
-- Prove larger repository/memory behavior beyond existing synthetic benchmarks.
-- Perform manual Windows GUI acceptance and v2 packaging/install validation.
-- Complete other v2 roadmap modules; do not claim the full v2 platform is complete.
-- Keep v1.0.0 stable.
+Latest after concurrent Git query optimization (commit `f4ecb50`):
 
-## How to continue development safely
+| Run | Git context (ms) | Overall scan (ms) | Secret files scanned/reused |
+| --- | ---: | ---: | --- |
+| 1 | 72.06 | 147.23 | 29 / 55 |
+| 2 | 67.38 | 133.60 | 27 / 57 |
+| 3 | 59.58 | 129.20 | 27 / 57 |
 
-1. Fetch the active branch HEAD and current workflow statuses.
-2. Read the relevant code and tests from GitHub, not assumptions from an old conversation.
-3. Implement one bounded change at a time on `feat/v2-engine-integration`.
-4. Add or update regression tests, push commits, inspect Linux and Windows CI.
-5. Ask the user to run Windows tests or benchmarks when physical validation is needed.
-6. Record both failures and successes in the engineering journal, including commit SHA, test output, environment, cause, fix, and remaining uncertainty.
-7. Never fabricate an outcome, CI pass, benchmark, or completion claim.
+Previous baseline immediately before optimization:
 
-## Documentation update policy
+| Run | Git context (ms) | Overall scan (ms) |
+| --- | ---: | ---: |
+| 1 | 132.17 | 205.52 |
+| 2 | 127.05 | 192.11 |
+| 3 | 123.04 | 187.17 |
 
-- [Engineering history](ENGINEERING_HISTORY.md) is **editable Markdown**. GitHub's pencil/Edit control or any Markdown editor can change it.
-- **Append** dated milestones and incident records. Preserve historical failures, superseded numbers and corrections rather than silently rewriting them.
-- Capture: date/time, goal, branch/commit, environment, commands, observed output, expected result, pass/fail/skip, diagnosis, changes made, verification, lessons learned, open follow-ups, and evidence links.
-- Separate **observed**, **inferred**, and **planned** statements.
-- Update this handoff file at major milestones, after significant design changes, and before switching chats.
-- If editing from a new chat, explicitly ask the assistant to read these GitHub files first and commit changes to the development branch.
+Third-run total improved ~31.0%; Git context improved ~51.6%. These are sequential Windows measurements, not rigorous multi-trial controlled results. All scans returned `status=BLOCKED`, a security policy outcome rather than an execution error. Secret cache discovered 84 files, hashed 57; warm runs reused 57 and scanned 27 small files; no skipped/error counters.
 
-## First message to paste into a new chat
+The Git context optimization in `pipelineguard/git_context.py` uses `ThreadPoolExecutor(max_workers=3)` to run independent branch, porcelain status and remote queries concurrently after resolving HEAD. Credential-redacted remote output and dirty detection were intended to remain unchanged.
 
-> Continue developing my PipelineGuard project at https://github.com/ibrahim1101/PipelineGuard on branch `feat/v2-engine-integration`. First read `docs/NEW_CHAT_HANDOFF.md`, `docs/ENGINEERING_HISTORY.md`, `README.md`, `ROADMAP.md` and current GitHub Actions. Preserve stable v1.0.0. Verify the latest branch HEAD, summarize the actual state and continue with the next uncompleted release-readiness task. Keep the engineering history updated with **all failures, attempts, test results, fixes and lessons learned**, including links and commit SHAs. Do not claim success until tests or CI confirm it.
+## Important paths
+
+- `pipelineguard/engine.py`: scan orchestration, optional stage and report-substage timings.
+- `pipelineguard/git_context.py`: Git commit, branch, dirty and redacted remote context.
+- `pipelineguard/secret_cache.py`: content-verified incremental secret cache, 1024-byte threshold.
+- `scripts/engine_timing.py`: reproducible offline stage timing.
+- `scripts/cache_benchmark.py`: synthetic cold/warm/invalidation secret-cache benchmarks.
+- `docs/ENGINEERING_HISTORY.md`: append-only engineering history and all user validation results.
+- `docs/NEW_CHAT_HANDOFF.md`: this handoff; update as milestones change.
+
+## Immediate next milestone
+
+1. Inspect the current Git context code and existing tests.
+2. Add dedicated regression tests for clean repositories, modified tracked files, untracked files, detached HEAD, non-Git directories and remote URL credential redaction. Preserve existing behavior, including the semantics of porcelain status and remote safety.
+3. Commit tests on `feat/v2-engine-integration` and append a detailed entry to `docs/ENGINEERING_HISTORY.md`.
+4. Ask user to pull and run `python -m pytest -q` and `python -m scripts.engine_timing` in Windows PowerShell. Record results only after actual validation.
+5. Investigate remaining setup and secret-scan overhead only after correctness tests; keep optimizations measurable.
+
+## Workflow expectations
+
+- Work directly on the connected GitHub repository when possible; always confirm commit SHAs and report failed writes truthfully.
+- Keep v1.0.0 stable; perform v2 work on the active branch.
+- Record successes, failed attempts, benchmark methodology, observed results and known limitations in the engineering history.
+- Avoid saying code is tested merely because it was committed; distinguish user-side test results from unverified changes.
+- Provide concise PowerShell commands for Windows validation and request outputs.
+- Preserve secret/credential safety in reports and repository data.
+- User prefers an informal collaborative 'bro/gang' tone and wants autonomous GitHub progress with careful validation.
+
+## Ready-to-run Windows commands
+
+```powershell
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q
+python -m scripts.engine_timing
+```
+
+## Suggested new-chat opening message
+
+'Continue PipelineGuard v2 development from https://github.com/ibrahim1101/PipelineGuard on branch feat/v2-engine-integration. First read docs/NEW_CHAT_HANDOFF.md and docs/ENGINEERING_HISTORY.md. Our latest Windows validation was 129 passed, 1 skipped; Git context parallelization reduced the third offline scan from 187.17 ms to 129.20 ms. Next, implement dedicated Git-context correctness regression tests, commit them to the v2 branch, and update the engineering journal. Do not touch stable v1.0.0. Give me PowerShell commands to validate each milestone.'
