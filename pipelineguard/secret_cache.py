@@ -4,7 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from scanners.secret_scanner import RULES, scan_file, scan_text
+from scanners.secret_scanner import RULES, scan_text
 from scanners.traversal import iter_files
 
 # Files smaller than this cost less to scan than to hash and cache on typical SSDs.
@@ -75,7 +75,6 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 counts["skipped_changed"] += 1
                 continue
             counts["hashed"] += 1
-            fingerprint = digest.hexdigest()
             prior = previous.get(relative)
             if (isinstance(prior, dict) and prior.get("sha256") == fingerprint and
                 _safe_cached_findings(prior.get("findings"), relative)):
@@ -83,7 +82,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 counts["reused"] += 1
             else:
                 cache_dirty = True
-                findings = scan_file(file_path, root, max_file_size)
+                findings = scan_text(content_bytes.decode("utf-8", errors="ignore"), relative)
                 final = file_path.stat()
                 if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
                     counts["skipped_changed"] += 1
