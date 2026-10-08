@@ -70,10 +70,12 @@ class Desktop:
 
     def _build_shell(self):
         """SOC navigation shell; existing scanner widgets remain intact."""
-        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
+        self.content_frame = tk.Frame(self.root, bg=CANVAS)
+        self.content_frame.pack(fill="both", expand=True)
+        self.sidebar = tk.Frame(self.content_frame, bg=OLIVE_DEEP, width=174)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        self.workspace = tk.Frame(self.root, bg=CANVAS)
+        self.workspace = tk.Frame(self.content_frame, bg=CANVAS)
         self.workspace.pack(side="left", fill="both", expand=True)
         navigation = (
             ("▦  Dashboard", lambda: self._navigate("Dashboard")),
@@ -117,11 +119,11 @@ class Desktop:
                         font=("Segoe UI", size, "bold" if bold else "normal"), **kwargs)
 
     def _build_header(self):
-        header = tk.Frame(self.workspace, bg=OLIVE_DEEP, height=112)
-        header.pack(fill="x")
+        header = tk.Frame(self.root, bg=OLIVE_DEEP, height=100)
+        header.pack(side="top", fill="x", before=self.content_frame)
         header.pack_propagate(False)
         brand_row = tk.Frame(header, bg=OLIVE_DEEP)
-        brand_row.pack(anchor="w", padx=26, pady=(10, 0))
+        brand_row.pack(anchor="w", padx=14, pady=(10, 0))
         tk.Label(brand_row, image=self.cat_logo, bg=OLIVE_DEEP, borderwidth=0).pack(side="left")
         brand_title = tk.Frame(brand_row, bg=OLIVE_DEEP)
         brand_title.pack(side="left", padx=(9, 0))
