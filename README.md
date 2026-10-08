@@ -1,5 +1,11 @@
 # PipelineGuard
 
+## Release and development status
+
+**Stable release:** v1.0.0 (Windows installer, CLI and Tk desktop). **v2.0 is unreleased development** on `feat/v2-engine-integration` / PR #1; do not treat its capabilities as part of the stable installer.
+
+The v2 development branch currently includes scan profiles, external verified SHA-256 fingerprints, bounded fingerprint workers, progress events, Git context with remote credential redaction, and baseline finding differences. Fingerprint caching is **not** cached secret-scanner findings: secret rules still execute on every eligible file. Streaming findings, actual analyzer-result reuse, dependency reachability, and the redesigned SOC desktop remain planned, not released. Linux/Windows CI success on the development branch does not constitute a v2 release.
+
 ## Advisory release policy
 
 Set `"block_advisory_severity": "HIGH"` in configuration to block HIGH and
@@ -96,7 +102,7 @@ pytest -q
 
 ## Project status
 
-Current release development: v1.0.0. Secret scanning, dependency inventory,
+Stable release: v1.0.0. Secret scanning, dependency inventory,
 live OSV lookup, scoring, JSON/HTML/SARIF reports, release policies, native
 desktop scanning, Docker support, tests, and GitHub Actions workflows are implemented. The Windows standalone executable and v1.0.0 installer now pass automated build, launch, install, installed-app launch, and uninstall validation on a Windows runner.
 
