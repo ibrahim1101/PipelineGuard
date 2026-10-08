@@ -49,6 +49,8 @@ def write_html_report(report: dict[str, Any], output: Path) -> None:
     rows = "".join("<tr>" + "".join(cell(item, key) for key in columns) + "</tr>"
                    for item in report["findings"]) or '<tr><td colspan="6">No findings</td></tr>'
     color = SAFE if report["status"] == "SAFE" else BLOCKED
+    profile = escape(str(report.get("scan_profile") or "Not specified"))
+    scanned_at = escape(str(report.get("scanned_at") or "Not recorded"))
     advisory_sections = ""
     for item in report["findings"]:
         if not item.get("id"):
@@ -57,7 +59,9 @@ def write_html_report(report: dict[str, Any], output: Path) -> None:
             "id", "aliases", "package", "version", "summary", "advisory_severity", "cvss_score",
             "severity_vectors", "affected_ranges", "fixed_versions", "references", "remediation"
         )}
-        advisory_sections += "<section><h2>Dependency advisory</h2><pre>" + escape(json.dumps(details, indent=2)) + "</pre></section>"
+        heading = escape(str(item.get("id") or "Dependency advisory"))
+        summary = escape(str(item.get("summary") or "No summary supplied"))
+        advisory_sections += "<section><h2>Dependency advisory: " + heading + "</h2><p>" + summary + "</p><details><summary>Full advisory details</summary><pre>" + escape(json.dumps(details, indent=2)) + "</pre></details></section>"
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>PipelineGuard Report</title><style>body{{font-family:Arial;max-width:1000px;margin:40px auto}}
 .status{{font-size:2em;font-weight:bold;color:{color}}}table{{border-collapse:collapse;width:100%;box-shadow:0 2px 8px #0001;overflow-wrap:anywhere}}
@@ -65,6 +69,7 @@ th,td{{border:1px solid {OLIVE_LIGHT};padding:10px;text-align:left}}th{{backgrou
 body{{color:{OLIVE_DARK};background:#FAFCF5}}h1{{color:{OLIVE_DARK};border-bottom:4px solid {OLIVE};padding-bottom:10px}}</style></head>
 <body><h1>PipelineGuard Security Report</h1><div class="status">{report['status']}</div>
 <p>Security score: <strong>{report['score']}/100</strong></p>
+<p>Scan profile: <strong>{profile}</strong> · Scanned at (UTC): <strong>{scanned_at}</strong></p>
 <p>Total findings: {report['summary']['total_findings']} · Critical: {report['summary']['critical']} · Warnings: {report['summary']['warnings']}</p>
 <table><thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Package</th><th>Advisory IDs</th><th>Remediation</th></tr></thead><tbody>{rows}</tbody></table>
 {advisory_sections}</body></html>"""
