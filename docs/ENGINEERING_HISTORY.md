@@ -183,3 +183,13 @@ Copy this template for each meaningful experiment, feature, regression or releas
 - **Change:** Established this Markdown file as the version-controlled, append-only engineering journal; created `docs/NEW_CHAT_HANDOFF.md` for fresh-chat onboarding.
 - **Outcome:** Documentation changes committed to the v2 development branch. No additional product test result is claimed for this documentation-only milestone.
 - **Lesson:** Durable repository documentation is more reliable than relying on a single long chat history.
+
+## 11. Continuation audit — 8 October 2026 (new chat)
+
+**Goal:** Re-establish the verified checkpoint and audit nullable secret telemetry consumers before further v2 changes.
+
+**Observed:** Read `docs/NEW_CHAT_HANDOFF.md`, this journal, `README.md`, `ROADMAP.md`, `pipelineguard/engine.py`, `pipelineguard/main.py`, `pipelineguard/desktop.py`, and `pipelineguard/secret_cache.py` from `feat/v2-engine-integration` through the GitHub connector. The handoff records code commit `b03c4699` as last verified (120 passed, 1 skipped; prior Linux and Windows CI successful). These are historical results, **not fresh tests**. The GitHub commit-workflow lookup for `b03c4699` returned no PR-triggered runs; this endpoint filters PR events and is insufficient to disprove the documented successful workflow URLs. Fetching `.github/workflows` as a file failed because it is a directory. Fetching `tests/test_engine.py` returned 404; test file location needs discovery.
+
+**Consumer audit (source inspection, partial):** `engine.py` uses nullable `discovered`, `hashed`, `scanned`, and skip counters for full strategy; the progress event avoids adding `None` by checking `scanned is not None`. `main.py` does not numerically aggregate `secret_cache` telemetry, and `desktop.py` currently invokes `run_scan` without a profile or progress callback, so these two inspected interfaces do not exhibit a nullable-counter arithmetic failure. `secret_cache.py` incremental counters remain integers. Report writer, test consumers, external integrations and workflow definitions remain to be audited; absence of an issue in inspected files is not a whole-repository guarantee.
+
+**Verification:** Read-only GitHub source inspection. No new code tests, benchmarks, Windows manual QA, CI run, or packaging validation performed during this checkpoint. No v1.0.0 changes. **Lesson:** Preserve unknown telemetry as null rather than misrepresenting it as zero, and distinguish source review from executed verification. **Next:** discover report writer and test consumers, add explicit nullable-telemetry contract regressions if needed, run local and CI checks, then record outputs and links.
