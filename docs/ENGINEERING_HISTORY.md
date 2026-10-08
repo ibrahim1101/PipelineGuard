@@ -728,3 +728,8 @@ User showed that the single approved cyber-cat logo/title still appeared offset 
 ## Post-branding dashboard readability regression — 2026-10-09
 
 User visually approved the full-width top-left cyber-cat header. The next development pass preserves that design and addresses the screenshot-observed Recent Scans card displaying literal `\\n` separators. Commit `fb0bcdf` replaces double-escaped newline sequences in `pipelineguard/desktop.py` with Python newline escape sequences, also correcting the insights and About text. Commit `6fc7cf2` adds a desktop UI regression test for multi-line scan history. **Automated tests and Windows rendering not yet verified**; run `python -m pytest -q -rs` and launch desktop after pulling.
+
+
+## Scrollable dashboard and idle progress cleanup — 2026-10-09
+
+Following user's 153 passed/2 skipped Windows pytest run and approval to proceed, commit `ee4c55b` wraps the existing SOC workspace in a Tk Canvas with a vertical scrollbar, canvas width synchronization, and mouse wheel handling that leaves findings Treeview and details Text controls alone. The approved global header/sidebar branding and scan engine remain unchanged. Progressbar now starts in determinate 0 state, enters indeterminate mode only while scanning, and resets to determinate 0 on result or error. Commit `b409e1d` adds GUI tests for scroll container, idle progress and error reset; commit `a4c3f1f` updates a layout assertion for the new canvas parent. **New CI/Windows tests not yet verified.** Test mouse wheel behavior and findings table at reduced window height.
