@@ -580,3 +580,19 @@ python -m pytest -q -rs
 ```
 
 Result: **2 callback tests passed in 2.77s**; **full suite 141 passed, 1 skipped, 0 failed in 15.98s**. The skipped traversal test requires Windows symlink creation privileges. This validates backward compatibility but does **not** yet prove engine-connected, in-scan streaming. `scanners/secret_scanner.py` supports optional per-file finding callback; `run_scan` has not yet been connected to that callback. Next work: safe engine integration, allowlist-filtered emission, avoid duplicates, and incremental-cache behavior; add tests that prove callbacks occur before scanner completion.
+
+
+## Analyzer-time secret finding events — 2026-10-09
+
+Commit `e03cb11f00d439dd43e5c89fd221c751e72d9689` wires `scanners.secret_scanner.scan_directory(..., on_finding=...)` into the engine for subscribers. The engine filters each secret finding through the configured allowlist before notifying listeners, then emits only non-secret inventory/advisory records after analyzer completion to avoid duplicate secret events. **Opt-in streaming currently uses a full secret traversal** (strategy `streaming-full`), while ordinary scans retain incremental caching. The callback may execute before final report assembly, but dependency and OSV events are still delivered after their stages. Callback errors are not intentionally suppressed. Commit `7748860877d606405be55b004cbb54edee322514` adds tests for event-before-report, duplicate prevention, and allowlist behavior. No local Windows validation recorded yet.
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_finding_callback.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Next: confirm test results, add incremental-cache live events safely, and connect a thread-safe desktop event queue.
