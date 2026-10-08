@@ -8,9 +8,11 @@ import queue
 import threading
 import time
 import tkinter as tk
+import tkinter.font
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 
+from pipelineguard.brand_asset import load_cat_logo
 from pipelineguard.engine import run_scan
 from pipelineguard.reporting import write_json_report, write_html_report, write_sarif_report
 from pipelineguard.theme import (
@@ -54,6 +56,8 @@ class Desktop:
         style.configure("Horizontal.TProgressbar", troughcolor=BORDER, background=OLIVE,
                         bordercolor=CANVAS, lightcolor=OLIVE, darkcolor=OLIVE)
 
+        self.brand_font = "Bahnschrift" if "Bahnschrift" in tkinter.font.families(root) else "Segoe UI"
+        self.cat_logo = load_cat_logo(root)
         self._build_shell()
         self._build_header()
         self._build_controls()
@@ -69,9 +73,15 @@ class Desktop:
         self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        tk.Label(self.sidebar, text="◈  PipelineGuard", bg=OLIVE_DEEP,
-                 fg=OLIVE_LIGHT, font=("Segoe UI", 14, "bold")).pack(
-                     anchor="w", padx=12, pady=(24, 30))
+        sidebar_brand = tk.Frame(self.sidebar, bg=OLIVE_DEEP)
+        sidebar_brand.pack(fill="x", padx=6, pady=(22, 28))
+        tk.Label(sidebar_brand, image=self.cat_logo, bg=OLIVE_DEEP, borderwidth=0).pack(side="left")
+        brand_words = tk.Frame(sidebar_brand, bg=OLIVE_DEEP)
+        brand_words.pack(side="left", padx=(2, 0))
+        tk.Label(brand_words, text="Pipeline", bg=OLIVE_DEEP, fg=WHITE,
+                 font=(self.brand_font, 11, "bold")).pack(anchor="w")
+        tk.Label(brand_words, text="Guard", bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
+                 font=(self.brand_font, 11, "bold")).pack(anchor="w")
         self.workspace = tk.Frame(self.root, bg=CANVAS)
         self.workspace.pack(side="left", fill="both", expand=True)
         navigation = (
@@ -119,10 +129,20 @@ class Desktop:
         header = tk.Frame(self.workspace, bg=OLIVE_DEEP, height=112)
         header.pack(fill="x")
         header.pack_propagate(False)
-        tk.Label(header, text="PipelineGuard", bg=OLIVE_DEEP, fg=WHITE,
-                 font=("Segoe UI", 30, "bold")).pack(anchor="w", padx=28, pady=(20, 0))
-        tk.Label(header, text="Secure every build before it reaches production.",
-                 bg=OLIVE_DEEP, fg=OLIVE_LIGHT, font=("Segoe UI", 11)).pack(anchor="w", padx=31)
+        brand_row = tk.Frame(header, bg=OLIVE_DEEP)
+        brand_row.pack(anchor="w", padx=26, pady=(10, 0))
+        tk.Label(brand_row, image=self.cat_logo, bg=OLIVE_DEEP, borderwidth=0).pack(side="left")
+        brand_title = tk.Frame(brand_row, bg=OLIVE_DEEP)
+        brand_title.pack(side="left", padx=(9, 0))
+        title_line = tk.Frame(brand_title, bg=OLIVE_DEEP)
+        title_line.pack(anchor="w")
+        tk.Label(title_line, text="Pipeline", bg=OLIVE_DEEP, fg=WHITE,
+                 font=(self.brand_font, 25, "bold")).pack(side="left")
+        tk.Label(title_line, text="Guard", bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
+                 font=(self.brand_font, 25, "bold")).pack(side="left")
+        tk.Label(brand_title, text="Secure every build before it reaches production.",
+                 bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
+                 font=("Segoe UI", 10)).pack(anchor="w")
         ttk.Button(header, text="About", command=self.show_about).place(relx=1.0, x=-28, y=32, anchor="e")
 
     def show_about(self):
