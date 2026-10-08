@@ -673,3 +673,8 @@ Following the UI fix commit `f8eea7b` (details line breaks, × path clear contro
 ## SOC redesign stage 1 — navigation shell (2026-10-09)
 
 Approved visual spec: `docs/SOC_DESIGN_SPEC.md`. Commit `94311bb` introduces an olive sidebar and wider workspace while retaining existing scan controls, findings, progress callbacks and report export. Navigation currently routes to existing functionality or explanatory dialogs; full distinct section views, charts, logo asset and pixel-cat loader remain future stages. **Automated CI and Windows hands-on testing are pending**. Suggested verification: `python -m pytest -q tests/test_desktop_ui.py` and `python -m pipelineguard.desktop`. Watch for Tk layout regressions, small-window clipping and sidebar readability.
+
+
+## SOC redesign stage 2a — dark palette and widget styling (2026-10-09)
+
+User visually verified Stage 1 sidebar screenshot and authorized continued implementation. Commits `5f61854` and `7ed9025` update `pipelineguard/theme.py` with dark charcoal/olive design tokens and apply Tk/ttk styling adjustments in `pipelineguard/desktop.py`, including readonly combobox colors, tree selection, dark OSV checkbox and clear control for findings search. No scanner engine changes. **Validation pending**: inspect Windows screenshot for readability, checkboxes, Tk entry appearance, report export and regression suite. Analytics and actual cyber-cat logo are not yet implemented. Test with `python -m pytest -q tests/test_desktop_ui.py` and `python -m pipelineguard.desktop`.
