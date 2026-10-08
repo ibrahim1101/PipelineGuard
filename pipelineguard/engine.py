@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timezone
 import os
 from pathlib import Path
 from typing import Callable
@@ -97,6 +98,7 @@ def run_scan(
         apply_allowlist(secrets, settings.allowlist),
         apply_allowlist(records + vulnerabilities, settings.allowlist),
     )
+    report["scanned_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if secret_metrics is not None:
         report["secret_cache"] = secret_metrics
     report["dependency_check_complete"] = not any(item.get("rule") == "Dependency check incomplete" for item in vulnerabilities)
