@@ -59,21 +59,39 @@ def _safe_remote(value: str | None) -> str | None:
     return f"{scheme}://{host}"
 
 
+def _branch_and_dirty(status: str | None) -> tuple[str | None, bool]:
+    """Extract branch and working-tree state from porcelain v1 branch output."""
+    if not status:
+        return None, False
+    lines = status.splitlines()
+    if not lines or not lines[0].startswith("## "):
+        return None, bool(status)
+    header = lines[0][3:]
+    if header.startswith("HEAD (detached") or header == "HEAD (no branch)":
+        branch = None
+    elif header.startswith("No commits yet on "):
+        branch = header[len("No commits yet on "):]
+    elif header.startswith("Initial commit on "):
+        branch = header[len("Initial commit on "):]
+    else:
+        branch = header.split("...", 1)[0]
+    return branch or None, len(lines) > 1
+
+
 def get_git_context(root: Path) -> dict[str, object]:
     commit = _git(root, "rev-parse", "HEAD")
     if not commit:
         return {"available": False}
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        branch_job = pool.submit(_git, root, "branch", "--show-current")
-        status_job = pool.submit(_git, root, "status", "--porcelain")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        status_job = pool.submit(_git, root, "status", "--porcelain=v1", "--branch")
         remote_job = pool.submit(_git, root, "config", "--get", "remote.origin.url")
-        branch = branch_job.result()
         status = status_job.result()
+        branch, dirty = _branch_and_dirty(status)
         remote = remote_job.result()
     return {
         "available": True,
         "commit": commit,
         "branch": branch or None,
-        "dirty": bool(status),
+        "dirty": dirty,
         "remote": _safe_remote(remote),
     }
