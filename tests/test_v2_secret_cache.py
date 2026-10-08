@@ -133,19 +133,15 @@ def test_cache_metrics_count_oversize_files(tmp_path, monkeypatch):
 
 
 def test_tiny_files_are_scanned_without_cache(tmp_path, monkeypatch):
-    from pipelineguard import secret_cache
+    from scanners.secret_scanner import scan_directory
     root, target = _setup(tmp_path, monkeypatch)
-    calls = []
-    original = secret_cache.scan_file
-    def spy(*args, **kwargs):
-        calls.append(1)
-        return original(*args, **kwargs)
-    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    target.write_text('password="abcdefgh123"', encoding="utf-8")
+    expected = scan_directory(root, set(), 100)
+    assert expected
     first = {}
     second = {}
-    assert scan_secrets_incremental(root, set(), 100, metrics=first) == []
-    assert scan_secrets_incremental(root, set(), 100, metrics=second) == []
-    assert calls == [1, 1]
+    assert scan_secrets_incremental(root, set(), 100, metrics=first) == expected
+    assert scan_secrets_incremental(root, set(), 100, metrics=second) == expected
     assert first["hashed"] == second["hashed"] == 0
     assert first["scanned"] == second["scanned"] == 1
     assert second["reused"] == 0
