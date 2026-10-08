@@ -140,3 +140,13 @@ def test_approved_brand_asset_loads(desktop):
     assert desktop.cat_logo.width() == 54
     assert desktop.cat_logo.height() == 53
     assert desktop.brand_font in ("Bahnschrift", "Segoe UI")
+
+
+def test_branding_is_above_navigation_and_workspace(desktop):
+    desktop.root.update_idletasks()
+    header = desktop.root.pack_slaves()[0]
+    assert header is not desktop.content_frame
+    assert desktop.content_frame in desktop.root.pack_slaves()
+    assert desktop.sidebar.master is desktop.content_frame
+    assert desktop.workspace.master is desktop.content_frame
+    assert header.winfo_y() <= desktop.content_frame.winfo_y()
