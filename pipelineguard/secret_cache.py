@@ -87,7 +87,8 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 results.extend(findings)
                 continue
             # Retain bounded content for hashing and cache-miss scanning.
-            content_bytes = file_path.read_bytes()
+            with file_path.open("rb") as handle:
+                content_bytes = handle.read(max_file_size + 1)
             if len(content_bytes) > max_file_size:
                 counts["skipped_size"] += 1
                 continue
