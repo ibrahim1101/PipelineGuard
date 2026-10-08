@@ -33,6 +33,8 @@ class Desktop:
         self.root.geometry("1180x780")
         self.root.minsize(900, 650)
         self.root.configure(bg=CANVAS)
+        self.root.geometry("1440x900")
+        self.root.minsize(1050, 700)
 
         style = ttk.Style(root)
         style.theme_use("clam")
@@ -48,18 +50,66 @@ class Desktop:
         style.configure("Horizontal.TProgressbar", troughcolor=BORDER, background=OLIVE,
                         bordercolor=CANVAS, lightcolor=OLIVE, darkcolor=OLIVE)
 
+        self._build_shell()
         self._build_header()
         self._build_controls()
         self._build_dashboard()
         self._build_findings()
         self.root.after(100, self.poll)
 
+    def _build_shell(self):
+        """SOC navigation shell; existing scanner widgets remain intact."""
+        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
+        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.pack_propagate(False)
+        tk.Label(self.sidebar, text="◈  PipelineGuard", bg=OLIVE_DEEP,
+                 fg=OLIVE_LIGHT, font=("Segoe UI", 14, "bold")).pack(
+                     anchor="w", padx=12, pady=(24, 30))
+        self.workspace = tk.Frame(self.root, bg=CANVAS)
+        self.workspace.pack(side="left", fill="both", expand=True)
+        navigation = (
+            ("▦  Dashboard", lambda: self._navigate("Dashboard")),
+            ("⌕  Scan Project", lambda: self._navigate("Scan Project")),
+            ("☷  Findings", lambda: self._navigate("Findings")),
+            ("◫  Dependencies", lambda: self._navigate("Dependencies")),
+            ("◇  OSV Lookup", lambda: self._navigate("OSV Lookup")),
+            ("▤  Reports", lambda: self._navigate("Reports")),
+            ("◷  Scan History", self.show_history),
+            ("⚙  Settings", lambda: self._navigate("Settings")),
+        )
+        for label, callback in navigation:
+            tk.Button(self.sidebar, text=label, command=callback, anchor="w",
+                      bg=OLIVE_DARK if label.startswith("▦") else OLIVE_DEEP,
+                      fg=WHITE, activebackground=OLIVE_MID,
+                      activeforeground=WHITE, relief="flat", borderwidth=0,
+                      font=("Segoe UI", 10), padx=14, pady=11).pack(fill="x", padx=7, pady=2)
+        tk.Button(self.sidebar, text="ⓘ  About", command=self.show_about,
+                  anchor="w", bg=OLIVE_DEEP, fg=OLIVE_LIGHT, relief="flat",
+                  borderwidth=0, padx=14, pady=12).pack(side="bottom", fill="x")
+
+    def _navigate(self, destination):
+        """Navigate to a working section without presenting nonfunctional pages."""
+        if destination == "Scan Project":
+            self.scan_button.focus_set()
+        elif destination == "Findings":
+            self.tree.focus_set()
+        elif destination == "Reports":
+            self.export()
+        elif destination == "Settings":
+            self.show_config_help()
+        elif destination == "OSV Lookup":
+            messagebox.showinfo("OSV Lookup", "Enable live OSV lookup in the scan options, then scan a project.")
+        elif destination == "Dependencies":
+            messagebox.showinfo("Dependencies", "Dependency results are included in the findings table and exported report.")
+        else:
+            self.status_label.configure(text=self.status.get())
+
     def _label(self, parent, text, size=10, color=INK, bold=False, **kwargs):
         return tk.Label(parent, text=text, bg=kwargs.pop("bg", CANVAS), fg=color,
                         font=("Segoe UI", size, "bold" if bold else "normal"), **kwargs)
 
     def _build_header(self):
-        header = tk.Frame(self.root, bg=OLIVE_DEEP, height=112)
+        header = tk.Frame(self.workspace, bg=OLIVE_DEEP, height=112)
         header.pack(fill="x")
         header.pack_propagate(False)
         tk.Label(header, text="PipelineGuard", bg=OLIVE_DEEP, fg=WHITE,
@@ -86,7 +136,7 @@ class Desktop:
         ttk.Button(window, text="Close", command=window.destroy).pack()
 
     def _build_controls(self):
-        card = tk.Frame(self.root, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        card = tk.Frame(self.workspace, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
         card.pack(fill="x", padx=24, pady=(18, 10))
         self.folder = tk.StringVar()
         try:
@@ -150,7 +200,7 @@ class Desktop:
         return label
 
     def _build_dashboard(self):
-        row = tk.Frame(self.root, bg=CANVAS)
+        row = tk.Frame(self.workspace, bg=CANVAS)
         row.pack(fill="x", padx=24, pady=(0, 12))
         self.status_value = self._metric(row, "Status", "READY", OLIVE_MID)
         self.score_value = self._metric(row, "Security score", "—")
@@ -160,19 +210,19 @@ class Desktop:
         self.dependency_value = self._metric(row, "Dependency lookup", "—")
         self.duration_value = self._metric(row, "Scan duration", "—")
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
-        self._label(self.root, "", 10, MUTED)
-        self.status_label = self._label(self.root, self.status.get(), 10, MUTED)
+        self._label(self.workspace, "", 10, MUTED)
+        self.status_label = self._label(self.workspace, self.status.get(), 10, MUTED)
         self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
-        self.progress = ttk.Progressbar(self.root, mode="indeterminate",
+        self.progress = ttk.Progressbar(self.workspace, mode="indeterminate",
                                         style="Horizontal.TProgressbar")
         self.progress.pack(fill="x", padx=24, pady=(0, 4))
-        self.cache_status = self._label(self.root, "Cache: —", 9, MUTED)
+        self.cache_status = self._label(self.workspace, "Cache: —", 9, MUTED)
         self.cache_status.pack(anchor="w", padx=28, pady=(0, 10))
 
     def _build_findings(self):
-        self._label(self.root, "Security findings", 15, OLIVE_DEEP, True).pack(
+        self._label(self.workspace, "Security findings", 15, OLIVE_DEEP, True).pack(
             anchor="w", padx=28, pady=(0, 8))
-        search_bar = tk.Frame(self.root, bg=CANVAS)
+        search_bar = tk.Frame(self.workspace, bg=CANVAS)
         search_bar.pack(fill="x", padx=24, pady=(0, 8))
         self.search = tk.StringVar()
         self.search.trace_add("write", lambda *_: self.refresh_findings())
@@ -184,7 +234,7 @@ class Desktop:
         ttk.Combobox(search_bar, textvariable=self.severity_filter, state="readonly", width=18,
                      values=("All severities", "CRITICAL", "HIGH", "WARNING", "MEDIUM", "LOW", "INFO")).pack(side="left")
         ttk.Button(search_bar, text="Clear filters", command=self.clear_filters).pack(side="left", padx=(8, 0))
-        wrap = tk.Frame(self.root, bg=CANVAS)
+        wrap = tk.Frame(self.workspace, bg=CANVAS)
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
         table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
         table_card.pack(side="left", fill="both", expand=True)
