@@ -11,6 +11,7 @@ from pipelineguard.cache import ScanCache
 from pipelineguard.config import load_config, apply_allowlist, policy_blocks
 from pipelineguard.git_context import get_git_context
 from pipelineguard.orchestrator import ProgressEvent, fingerprint_files
+from pipelineguard.secret_cache import scan_secrets_incremental
 from pipelineguard.profiles import get_profile
 from pipelineguard.reporting import build_report
 from scanners.traversal import iter_files
@@ -74,7 +75,7 @@ def run_scan(
     if progress:
         progress(ProgressEvent("secrets"))
     report = build_report(
-        apply_allowlist(scan_directory(path, settings.ignored_directories, settings.max_file_size), settings.allowlist),
+        apply_allowlist(scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size) if selected is not None and selected.name.lower() in {'quick', 'standard', 'deep'} else scan_directory(path, settings.ignored_directories, settings.max_file_size), settings.allowlist),
         apply_allowlist(records + vulnerabilities, settings.allowlist),
     )
     report["dependency_check_complete"] = not any(item.get("rule") == "Dependency check incomplete" for item in vulnerabilities)

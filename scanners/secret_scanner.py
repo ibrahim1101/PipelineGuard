@@ -28,25 +28,26 @@ RULES = (
 )
 
 
+def scan_file(file_path: Path, root: Path, max_file_size: int = MAX_FILE_SIZE) -> list[dict[str, object]]:
+    """Scan one file; cache callers must handle read failures."""
+    if file_path.stat().st_size > max_file_size:
+        return []
+    findings: list[dict[str, object]] = []
+    for line_number, line in enumerate(file_path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+        for rule_name, pattern in RULES:
+            if pattern.search(line):
+                findings.append({"severity": "CRITICAL", "rule": rule_name,
+                    "confidence": "high" if rule_name != "Generic secret assignment" else "medium",
+                    "file": str(file_path.relative_to(root)), "line": line_number})
+    return findings
+
+
 def scan_directory(root: Path, ignored_directories: set[str] | None = None, max_file_size: int = MAX_FILE_SIZE) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     root = root.resolve()
-    ignored_directories = SKIP_DIRECTORIES if ignored_directories is None else ignored_directories
-    for file_path in iter_files(root, ignored_directories):
+    for file_path in iter_files(root, SKIP_DIRECTORIES if ignored_directories is None else ignored_directories):
         try:
-            if file_path.stat().st_size > max_file_size:
-                continue
-            lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+            findings.extend(scan_file(file_path, root, max_file_size))
         except OSError:
             continue
-        for line_number, line in enumerate(lines, start=1):
-            for rule_name, pattern in RULES:
-                if pattern.search(line):
-                    findings.append({
-                        "severity": "CRITICAL",
-                        "rule": rule_name,
-                        "confidence": "high" if rule_name != "Generic secret assignment" else "medium",
-                        "file": str(file_path.relative_to(root)),
-                        "line": line_number,
-                    })
     return findings
