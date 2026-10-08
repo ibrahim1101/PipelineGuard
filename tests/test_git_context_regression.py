@@ -79,3 +79,19 @@ def test_remote_credentials_never_exported(repo, remote, expected):
     assert context["remote"] == expected
     assert "fake-token" not in str(context)
     assert "hidden" not in str(context)
+
+
+def test_branch_with_upstream(repo):
+    _git(repo, "remote", "add", "origin", "https://github.com/example/repo.git")
+    current = _git(repo, "branch", "--show-current")
+    _git(repo, "update-ref", f"refs/remotes/origin/{current}", _git(repo, "rev-parse", "HEAD"))
+    _git(repo, "branch", "--set-upstream-to", f"origin/{current}", current)
+    context = get_git_context(repo)
+    assert context["branch"] == current
+    assert context["dirty"] is False
+
+
+def test_staged_change_marks_dirty(repo):
+    (repo / "tracked.txt").write_text("staged\\n", encoding="utf-8")
+    _git(repo, "add", "tracked.txt")
+    assert get_git_context(repo)["dirty"] is True
