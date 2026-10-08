@@ -19,9 +19,10 @@ def _setup(tmp_path, monkeypatch):
 def test_modified_file_rechecked_even_with_same_size_and_mtime(tmp_path, monkeypatch):
     from pipelineguard import secret_cache
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     original = target.stat()
-    target.write_text("note")
+    target.write_text("note " * 300)
     os.utime(target, ns=(original.st_atime_ns, original.st_mtime_ns))
     calls = []
     scanner = secret_cache.scan_file
@@ -29,36 +30,39 @@ def test_modified_file_rechecked_even_with_same_size_and_mtime(tmp_path, monkeyp
         calls.append(1)
         return scanner(*args, **kwargs)
     monkeypatch.setattr(secret_cache, "scan_file", spy)
-    scan_secrets_incremental(root, set(), 100)
+    scan_secrets_incremental(root, set(), 10000)
     assert calls == [1]
 
 
 def test_unchanged_file_reuses_cached_result(tmp_path, monkeypatch):
     from pipelineguard import secret_cache
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     def unexpected(*args, **kwargs):
         raise AssertionError("unchanged source rescanned")
     monkeypatch.setattr(secret_cache, "scan_file", unexpected)
-    assert scan_secrets_incremental(root, set(), 100) == []
+    assert scan_secrets_incremental(root, set(), 10000) == []
 
 
 def test_corrupt_cache_rescans_and_prunes_deleted_file(tmp_path, monkeypatch):
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     name = hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json"
     cache = tmp_path / "cache" / "PipelineGuard" / "secret-findings" / name
     cache.write_text("{invalid")
-    assert scan_secrets_incremental(root, set(), 100) == []
+    assert scan_secrets_incremental(root, set(), 10000) == []
     target.unlink()
-    assert scan_secrets_incremental(root, set(), 100) == []
+    assert scan_secrets_incremental(root, set(), 10000) == []
     assert json.loads(cache.read_text())["files"] == {}
 
 
 def test_tampered_cache_entry_is_rescanned(tmp_path, monkeypatch):
     from pipelineguard import secret_cache
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     name = hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json"
     cache = tmp_path / "cache" / "PipelineGuard" / "secret-findings" / name
     data = json.loads(cache.read_text())
@@ -70,47 +74,50 @@ def test_tampered_cache_entry_is_rescanned(tmp_path, monkeypatch):
         calls.append(1)
         return original(*args, **kwargs)
     monkeypatch.setattr(secret_cache, "scan_file", spy)
-    assert scan_secrets_incremental(root, set(), 100) == []
+    assert scan_secrets_incremental(root, set(), 10000) == []
     assert calls == [1]
 
 
 def test_changed_limit_invalidates_cache(tmp_path, monkeypatch):
     from pipelineguard import secret_cache
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     calls = []
     original = secret_cache.scan_file
     def spy(*args, **kwargs):
         calls.append(1)
         return original(*args, **kwargs)
     monkeypatch.setattr(secret_cache, "scan_file", spy)
-    scan_secrets_incremental(root, set(), 101)
+    scan_secrets_incremental(root, set(), 10001)
     assert calls == [1]
 
 
 def test_unchanged_cache_is_not_rewritten(tmp_path, monkeypatch):
     root, target = _setup(tmp_path, monkeypatch)
-    scan_secrets_incremental(root, set(), 100)
+    target.write_text('safe ' * 300)
+    scan_secrets_incremental(root, set(), 10000)
     name = hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json"
     cache = tmp_path / "cache" / "PipelineGuard" / "secret-findings" / name
     before = cache.stat().st_mtime_ns
-    assert scan_secrets_incremental(root, set(), 100) == []
+    assert scan_secrets_incremental(root, set(), 10000) == []
     assert cache.stat().st_mtime_ns == before
 
 
 def test_cache_metrics_distinguish_scan_and_reuse(tmp_path, monkeypatch):
     root, target = _setup(tmp_path, monkeypatch)
+    target.write_text('safe ' * 300)
     first = {}
-    scan_secrets_incremental(root, set(), 100, metrics=first)
+    scan_secrets_incremental(root, set(), 10000, metrics=first)
     assert first == {"discovered": 1, "hashed": 1, "scanned": 1, "reused": 0,
                      "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0}
     second = {}
-    scan_secrets_incremental(root, set(), 100, metrics=second)
+    scan_secrets_incremental(root, set(), 10000, metrics=second)
     assert second["reused"] == 1
     assert second["scanned"] == 0
     target.write_text("changed", encoding="utf-8")
     third = {}
-    scan_secrets_incremental(root, set(), 100, metrics=third)
+    scan_secrets_incremental(root, set(), 10000, metrics=third)
     assert third["scanned"] == 1
     assert third["reused"] == 0
 
