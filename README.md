@@ -10,6 +10,14 @@ The editable, living [Engineering History, Trial-and-Error Log & Test Evidence](
 
 The v2 development branch currently includes scan profiles, external verified SHA-256 fingerprints, bounded fingerprint workers, progress events, Git context with remote credential redaction, and baseline finding differences. The v2 development branch now includes a separate **content-verified secret-findings cache** and adaptive full/incremental scan selection. Cached findings are reused only after content verification; tiny-file-heavy repositories can use full scanning instead. The fingerprint cache and secret-findings cache are distinct. Streaming findings, actual analyzer-result reuse, dependency reachability, and the redesigned SOC desktop remain planned, not released. Linux/Windows CI success on the development branch does not constitute a v2 release.
 
+## Configuration (optional) — complete help
+
+The desktop's **Configuration (Optional)** field accepts a JSON file; click the **?** beside it to see all seven supported settings, a copyable example, and instructions. Leave the field blank for defaults. Select a file explicitly using **Choose config**.
+
+Read the [complete configuration guide](docs/CONFIGURATION.md) and use the [safe starter JSON](examples/pipelineguard.example.json). The guide covers `ignored_directories`, `max_file_size`, `fail_on_warning`, `allowlist`, `minimum_score`, `blocked_rules`, and `block_advisory_severity`, with types, defaults, validation and examples.
+
+CLI example: `python -m pipelineguard.main scan . --config .pipelineguard.json`.
+
 ## Advisory release policy
 
 Set `"block_advisory_severity": "HIGH"` in configuration to block HIGH and
