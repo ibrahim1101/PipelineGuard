@@ -514,3 +514,23 @@ python -m scripts.engine_timing --runs 10 --summary
 ```
 
 Compare against previous 10-run Git context median **68.70 ms** and total median **139.96 ms** cautiously; repository contents and machine conditions may differ. Log actual outputs and any failures before proceeding.
+
+
+## Windows verification: three-process Git context — 2026-10-09
+
+The user confirmed the v2 branch was up to date and executed:
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_git_context_regression.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+**Git regression tests:** 10 passed in 8.17s. **Full suite:** 138 passed, 2 skipped, 0 failed in 22.64s. Skips: desktop graphical display unavailable and Windows symlink privileges unavailable.
+
+**Offline Standard-profile ten-run medians (ms):** setup 29.77, dependencies 7.54, secrets 34.25, Git context 60.88 (range 58.46–74.55), total 133.25 (range 125.53–162.56). Prior separate ten-run baseline Git context 68.70 and total 139.96 ms; observed median differences −7.82 ms (−11.4%) and −6.71 ms (−4.8%), respectively. Different-run system conditions mean this is suggestive, not controlled proof of speedup. All scans returned policy status `BLOCKED`, with no reported execution errors. Secret cache discovered 86, hashed 59, warm runs scanned 27 and reused 59; no skipped/error counters. Offline timing excludes OSV network latency.
+
+The three-subprocess optimization and added regression tests are now Windows validated. Continue v2.0 expanded scope (streaming findings, advanced analyzer caching, reachability, SOC desktop) with test evidence and commands for each milestone.
