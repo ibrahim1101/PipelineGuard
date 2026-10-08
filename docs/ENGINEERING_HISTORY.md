@@ -450,3 +450,19 @@ python -m scripts.engine_timing --runs 10 --summary
 **Security note:** The last command reading remote.origin.url may print credentials if the remote URL embeds them. Do not paste its raw output into chats or logs; redact usernames, tokens, and passwords first. Prefer using the application's redacted Git context for shared diagnostics.
 
 Future milestones must append the exact Windows validation commands alongside observed results, failures, fixes, and commit identifiers.
+
+
+## Git subprocess timing diagnostic — 2026-10-08
+
+Commit `b551117eed375b2e48e10c753538f344736e5184` added `scripts/git_context_timing.py`, measuring median/min/max time and failure counts for commit, branch, status and remote Git commands. Git stdout/stderr are captured but never printed to avoid exposing remote credentials. These are sequential diagnostic measurements, not parallel wall-time predictions. First write attempt was blocked by a safety check; simplified retry succeeded. Scanner logic and stable v1.0.0 unchanged. **Windows validation pending.**
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m scripts.git_context_timing --runs 10
+python -m scripts.engine_timing --runs 10 --summary
+python -m pytest -q -rs
+```
+
+Record command output, failures, and test results before considering any runtime optimization.
