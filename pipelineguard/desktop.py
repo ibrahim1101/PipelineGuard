@@ -47,6 +47,10 @@ class Desktop:
                         rowheight=32, borderwidth=0, font=("Segoe UI", 10))
         style.configure("Treeview.Heading", background=OLIVE_DARK, foreground=WHITE,
                         font=("Segoe UI", 10, "bold"), padding=8)
+        style.map("Treeview", background=[("selected", OLIVE_DARK)], foreground=[("selected", WHITE)])
+        style.configure("TEntry", fieldbackground=CARD, foreground=INK, insertcolor=INK)
+        style.configure("TCombobox", fieldbackground=CARD, foreground=INK, background=OLIVE_DARK)
+        style.map("TCombobox", fieldbackground=[("readonly", CARD)], foreground=[("readonly", INK)])
         style.configure("Horizontal.TProgressbar", troughcolor=BORDER, background=OLIVE,
                         bordercolor=CANVAS, lightcolor=OLIVE, darkcolor=OLIVE)
 
@@ -124,7 +128,7 @@ class Desktop:
         window.geometry("440x300")
         window.resizable(False, False)
         window.configure(bg=CANVAS)
-        self._label(window, "PipelineGuard", 22, OLIVE_DEEP, True).pack(pady=(28, 4))
+        self._label(window, "PipelineGuard", 22, OLIVE_LIGHT, True).pack(pady=(28, 4))
         self._label(window, "DevSecOps security scanner", 11, MUTED, bg=CANVAS).pack()
         text = (
             "Version 1.0.0\\n\\n"
@@ -181,7 +185,8 @@ class Desktop:
                      values=("Quick", "Standard", "Deep", "Release", "Forensic")).pack(side="left", padx=(0, 14))
         tk.Checkbutton(options, text="Enable live OSV vulnerability lookup",
                        variable=self.online, bg=CARD, fg=INK, activebackground=CARD,
-                       selectcolor=OLIVE_LIGHT, font=("Segoe UI", 10)).pack(side="left")
+                       activeforeground=INK, selectcolor=OLIVE_DARK,
+                       font=("Segoe UI", 10)).pack(side="left")
         self.scan_button = ttk.Button(options, text="Scan project", command=self.scan)
         self.scan_button.pack(side="right")
         ttk.Button(options, text="Export report", command=self.export).pack(side="right", padx=(0, 8))
@@ -210,7 +215,6 @@ class Desktop:
         self.dependency_value = self._metric(row, "Dependency lookup", "—")
         self.duration_value = self._metric(row, "Scan duration", "—")
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
-        self._label(self.workspace, "", 10, MUTED)
         self.status_label = self._label(self.workspace, self.status.get(), 10, MUTED)
         self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
         self.progress = ttk.Progressbar(self.workspace, mode="indeterminate",
@@ -220,7 +224,7 @@ class Desktop:
         self.cache_status.pack(anchor="w", padx=28, pady=(0, 10))
 
     def _build_findings(self):
-        self._label(self.workspace, "Security findings", 15, OLIVE_DEEP, True).pack(
+        self._label(self.workspace, "Security findings", 15, OLIVE_LIGHT, True).pack(
             anchor="w", padx=28, pady=(0, 8))
         search_bar = tk.Frame(self.workspace, bg=CANVAS)
         search_bar.pack(fill="x", padx=24, pady=(0, 8))
@@ -230,7 +234,10 @@ class Desktop:
         self.severity_filter.trace_add("write", lambda *_: self.refresh_findings())
         tk.Label(search_bar, text="Filter findings:", bg=CANVAS, fg=MUTED,
                  font=("Segoe UI", 10, "bold")).pack(side="left")
-        ttk.Entry(search_bar, textvariable=self.search, width=42).pack(side="left", padx=(8, 12))
+        search_input = tk.Frame(search_bar, bg=CANVAS)
+        search_input.pack(side="left", padx=(8, 12))
+        ttk.Entry(search_input, textvariable=self.search, width=38).pack(side="left")
+        ttk.Button(search_input, text="×", width=3, command=lambda: self.search.set("")).pack(side="left", padx=(4, 0))
         ttk.Combobox(search_bar, textvariable=self.severity_filter, state="readonly", width=18,
                      values=("All severities", "CRITICAL", "HIGH", "WARNING", "MEDIUM", "LOW", "INFO")).pack(side="left")
         ttk.Button(search_bar, text="Clear filters", command=self.clear_filters).pack(side="left", padx=(8, 0))
@@ -257,7 +264,7 @@ class Desktop:
 
         detail_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
         detail_card.pack(side="right", fill="both", padx=(14, 0))
-        self._label(detail_card, "Finding details", 11, OLIVE_DARK, True, bg=CARD).pack(
+        self._label(detail_card, "Finding details", 11, OLIVE_LIGHT, True, bg=CARD).pack(
             anchor="w", padx=14, pady=(12, 5))
         self.detail = tk.Text(detail_card, width=38, height=12, wrap="word",
                               bg=CARD, fg=INK, relief="flat", borderwidth=0,
@@ -279,7 +286,7 @@ class Desktop:
         window.geometry("820x650")
         window.minsize(620, 420)
         window.configure(bg=CANVAS)
-        self._label(window, "Configuration file guide", 18, OLIVE_DEEP, True).pack(
+        self._label(window, "Configuration file guide", 18, OLIVE_LIGHT, True).pack(
             anchor="w", padx=20, pady=(18, 6))
         self._label(window, "Optional JSON file. Leave blank for default settings.", 10, MUTED).pack(
             anchor="w", padx=20, pady=(0, 12))
@@ -533,7 +540,7 @@ class Desktop:
         window.title("PipelineGuard — Scan history")
         window.geometry("760x420")
         window.configure(bg=CANVAS)
-        self._label(window, "Recent scans", 16, OLIVE_DEEP, True).pack(anchor="w", padx=18, pady=14)
+        self._label(window, "Recent scans", 16, OLIVE_LIGHT, True).pack(anchor="w", padx=18, pady=14)
         box = tk.Text(window, bg=CARD, fg=INK, relief="flat", font=("Consolas", 10), padx=12, pady=12)
         box.pack(fill="both", expand=True, padx=18, pady=(0, 18))
         try:
