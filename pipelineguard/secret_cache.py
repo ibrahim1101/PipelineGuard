@@ -4,7 +4,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from scanners.secret_scanner import RULES, scan_text
+from itertools import islice
+from scanners.secret_scanner import RULES, scan_text, scan_directory
 from scanners.traversal import iter_files
 
 # Files smaller than this cost less to scan than to hash and cache on typical SSDs.
@@ -27,6 +28,25 @@ def _safe_cached_findings(value: object, relative: str) -> bool:
         and type(item["line"]) is int and item["line"] > 0
         for item in value
     )
+
+def choose_scan_strategy(root: Path, ignored_directories: set[str], max_file_size: int, *, sample_size: int = 64) -> str:
+    """Sample file sizes without trusting metadata for secret detection.
+
+    Select full scanning only for overwhelmingly tiny-file repositories.
+    Any sampling error falls back to the verified incremental scanner.
+    """
+    try:
+        sizes = []
+        for path in islice(iter_files(root.resolve(), ignored_directories), sample_size):
+            size = path.stat().st_size
+            if size <= max_file_size:
+                sizes.append(size)
+        if len(sizes) >= 32 and sum(size < MIN_CACHE_BYTES for size in sizes) * 10 >= len(sizes) * 9:
+            return "full"
+    except OSError:
+        pass
+    return "incremental"
+
 
 def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int, *, metrics: dict[str, int] | None = None) -> list[dict[str, object]]:
     root = root.resolve()
