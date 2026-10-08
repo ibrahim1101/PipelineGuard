@@ -342,6 +342,7 @@ class Desktop:
                                     highlightthickness=0)
         self.cat_canvas.pack(side="bottom", pady=(0, 12))
         self.cat_frame = 0
+        self.cat_ticks = 0
         self._render_pixel_cat(False)
 
     def _render_pixel_cat(self, active):
@@ -645,8 +646,10 @@ class Desktop:
                 self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
                 self.refresh_findings()
         finally:
-            if self.scan_button.instate(["disabled"]) and self.cat_frame % 5 == 0:
-                self._render_pixel_cat(True)
+            if self.scan_button.instate(["disabled"]):
+                self.cat_ticks += 1
+                if self.cat_ticks % 5 == 0:
+                    self._render_pixel_cat(True)
             self.root.after(100, self.poll)
 
     def clear_filters(self):
