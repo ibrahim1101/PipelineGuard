@@ -57,7 +57,14 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 continue
             if before.st_size < MIN_CACHE_BYTES:
                 # Scan tiny files directly; no hash, cache lookup or persistence.
-                findings = scan_file(file_path, root, max_file_size)
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                findings = []
+                for line_number, line in enumerate(content.splitlines(), 1):
+                    for rule_name, pattern in RULES:
+                        if pattern.search(line):
+                            findings.append({"severity": "CRITICAL", "rule": rule_name,
+                                "confidence": "high" if rule_name != "Generic secret assignment" else "medium",
+                                "file": relative, "line": line_number})
                 final = file_path.stat()
                 if (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_ino) != (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino):
                     counts["skipped_changed"] += 1
