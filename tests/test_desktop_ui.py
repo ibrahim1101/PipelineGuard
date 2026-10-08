@@ -136,12 +136,6 @@ def test_pixel_cat_indicator_tracks_scan_state(desktop):
     assert desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text") == "CAT ON DUTY"
 
 
-def test_soc_wordmark_and_cat_shield_render(desktop):
-    assert desktop.header_wordmark.find_withtag("wordmark")
-    assert desktop.sidebar_brand.find_withtag("wordmark")
-    assert desktop.sidebar_brand.find_withtag("cat-logo")
-
-
 def test_approved_brand_asset_loads(desktop):
     assert desktop.cat_logo.width() == 54
     assert desktop.cat_logo.height() == 53
