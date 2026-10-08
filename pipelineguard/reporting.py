@@ -30,29 +30,43 @@ def write_json_report(report: dict[str, Any], output: Path) -> None:
 
 def write_html_report(report: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    rows = "".join(
-        "<tr>" + "".join(f"<td>{escape(str(item.get(key, '')))}</td>" for key in ("severity", "rule", "file", "line")) + "</tr>"
-        for item in report["findings"]
-    ) or '<tr><td colspan="4">No findings</td></tr>'
+    columns = ("severity", "rule", "location", "package", "advisory", "remediation")
+    def cell(item: dict[str, Any], key: str) -> str:
+        if key == "location":
+            value = str(item.get("file") or "—")
+            if item.get("line"):
+                value += ":" + str(item["line"])
+        elif key == "package":
+            value = (str(item.get("package", "")) + " " + str(item.get("version", ""))).strip() or "—"
+        elif key == "advisory":
+            value = ", ".join(str(x) for x in [item.get("id"), *(item.get("aliases") or [])] if x) or "—"
+        elif key == "remediation":
+            fixed = item.get("fixed_versions") or []
+            value = ("Fixed in: " + ", ".join(str(x) for x in fixed)) if fixed else (item.get("remediation") or "—")
+        else:
+            value = str(item.get(key) or "—")
+        return "<td>" + escape(value) + "</td>"
+    rows = "".join("<tr>" + "".join(cell(item, key) for key in columns) + "</tr>"
+                   for item in report["findings"]) or '<tr><td colspan="6">No findings</td></tr>'
     color = SAFE if report["status"] == "SAFE" else BLOCKED
     advisory_sections = ""
     for item in report["findings"]:
         if not item.get("id"):
             continue
         details = {key: item.get(key, "") for key in (
-            "id", "package", "version", "summary", "advisory_severity", "cvss_score",
+            "id", "aliases", "package", "version", "summary", "advisory_severity", "cvss_score",
             "severity_vectors", "affected_ranges", "fixed_versions", "references", "remediation"
         )}
         advisory_sections += "<section><h2>Dependency advisory</h2><pre>" + escape(json.dumps(details, indent=2)) + "</pre></section>"
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>PipelineGuard Report</title><style>body{{font-family:Arial;max-width:1000px;margin:40px auto}}
-.status{{font-size:2em;font-weight:bold;color:{color}}}table{{border-collapse:collapse;width:100%;box-shadow:0 2px 8px #0001}}
+.status{{font-size:2em;font-weight:bold;color:{color}}}table{{border-collapse:collapse;width:100%;box-shadow:0 2px 8px #0001;overflow-wrap:anywhere}}
 th,td{{border:1px solid {OLIVE_LIGHT};padding:10px;text-align:left}}th{{background:{OLIVE_DARK};color:white}}
 body{{color:{OLIVE_DARK};background:#FAFCF5}}h1{{color:{OLIVE_DARK};border-bottom:4px solid {OLIVE};padding-bottom:10px}}</style></head>
 <body><h1>PipelineGuard Security Report</h1><div class="status">{report['status']}</div>
 <p>Security score: <strong>{report['score']}/100</strong></p>
 <p>Total findings: {report['summary']['total_findings']} · Critical: {report['summary']['critical']} · Warnings: {report['summary']['warnings']}</p>
-<table><thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th></tr></thead><tbody>{rows}</tbody></table>
+<table><thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Package</th><th>Advisory IDs</th><th>Remediation</th></tr></thead><tbody>{rows}</tbody></table>
 {advisory_sections}</body></html>"""
     output.write_text(html, encoding="utf-8")
 
@@ -72,7 +86,7 @@ def write_sarif_report(report: dict[str, Any], output: Path) -> None:
         if finding.get("id"):
             result["message"]["text"] = f"{finding['id']}: {finding.get('summary', '')} ({finding.get('package', '')} {finding.get('version', '')})"
             result["properties"] = {key: finding.get(key, "") for key in (
-                "id", "package", "version", "advisory_severity", "cvss_score", "severity_vectors",
+                "id", "aliases", "package", "version", "advisory_severity", "cvss_score", "severity_vectors",
                 "affected_ranges", "fixed_versions", "references", "remediation"
             )}
         file_name = finding.get("file")
