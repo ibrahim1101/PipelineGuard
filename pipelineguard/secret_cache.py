@@ -36,6 +36,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
     except (OSError, ValueError, TypeError):
         cache = {}
     previous = cache.get("files", {}) if isinstance(cache.get("files"), dict) else {}
+    cache_dirty = cache.get("version") != 1
     # Cache entries are only hints: unchanged metadata is insufficient for trust.
     # Continue hashing content to detect same-size/same-mtime modifications.
     updated = {}
@@ -59,6 +60,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 _safe_cached_findings(prior.get("findings"), relative)):
                 findings = prior["findings"]
             else:
+                cache_dirty = True
                 findings = scan_file(file_path, root, max_file_size)
                 final = file_path.stat()
                 if (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
@@ -68,7 +70,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
         except (OSError, UnicodeError):
             continue
     # Avoid rewriting a large cache JSON file on every unchanged warm scan.
-    if updated == previous and cache.get("version") == 1:
+    if not cache_dirty and len(updated) == len(previous) and updated.keys() == previous.keys():
         return results
     try:
         store.parent.mkdir(parents=True, exist_ok=True)
