@@ -147,9 +147,9 @@ class Desktop:
         self._label(window, "PipelineGuard", 22, OLIVE_LIGHT, True).pack(pady=(28, 4))
         self._label(window, "DevSecOps security scanner", 11, MUTED, bg=CANVAS).pack()
         text = (
-            "Version 1.0.0\\n\\n"
+            "Version 1.0.0\n\n"
             "Scan projects for exposed secrets, dependency issues, "
-            "and release-blocking security findings.\\n\\n"
+            "and release-blocking security findings.\n\n"
             "Desktop · Docker · JSON · HTML · SARIF · OSV"
         )
         self._label(window, text, 10, INK, bg=CANVAS, justify="center", wraplength=360).pack(pady=24)
@@ -270,7 +270,7 @@ class Desktop:
                     continue
                 name = Path(str(item.get("project", ""))).name or "Unknown project"
                 lines.append(f"{name[:28]}  |  {item.get('status', '?')}  |  {item.get('findings', '?')} findings")
-            self.recent_scans_text.configure(text="\\n".join(lines) if lines else "No completed scans yet.")
+            self.recent_scans_text.configure(text="\n".join(lines) if lines else "No completed scans yet.")
         except (OSError, ValueError, TypeError):
             self.recent_scans_text.configure(text="Scan history unavailable.")
         if hasattr(self, "trend_chart"):
@@ -279,7 +279,7 @@ class Desktop:
             summary = report.get("summary", {})
             cache = report.get("secret_cache") or {}
             self.scan_insights_text.configure(
-                text=(f"Critical: {summary.get('critical', 0)}  |  Warnings: {summary.get('warnings', 0)}\\n"
+                text=(f"Critical: {summary.get('critical', 0)}  |  Warnings: {summary.get('warnings', 0)}\n"
                       f"Secret files scanned: {cache.get('scanned', '—')}  |  Reused: {cache.get('reused', '—')}"))
 
     def _build_charts(self):
@@ -523,7 +523,7 @@ class Desktop:
             "block_advisory_severity": "HIGH",
         }
         self.root.clipboard_clear()
-        self.root.clipboard_append(json.dumps(example, indent=2) + "\\n")
+        self.root.clipboard_append(json.dumps(example, indent=2) + "\n")
         self.root.update()
         messagebox.showinfo("PipelineGuard", "Example JSON copied. Paste into a .json file and select it.")
 
