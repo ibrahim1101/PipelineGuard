@@ -66,10 +66,12 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
                 counts["scanned"] += 1
                 results.extend(findings)
                 continue
-            digest = hashlib.sha256()
-            with file_path.open("rb") as handle:
-                for chunk in iter(lambda: handle.read(131072), b""):
-                    digest.update(chunk)
+            # Retain bounded content for hashing and cache-miss scanning.
+            content_bytes = file_path.read_bytes()
+            if len(content_bytes) > max_file_size:
+                counts["skipped_size"] += 1
+                continue
+            fingerprint = hashlib.sha256(content_bytes).hexdigest()
             after = file_path.stat()
             if (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_ino):
                 counts["skipped_changed"] += 1
