@@ -635,3 +635,18 @@ Remaining: validate Windows results, ensure callback exceptions and cached findi
 ## Ubuntu CI regression and correction — 2026-10-09
 
 GitHub Actions security gate run [37832891115](https://github.com/ibrahim1101/PipelineGuard/actions/runs/37832891115) failed in the `Run tests` step: **2 failed, 140 passed, 4 skipped**. The failed tests were `test_finding_callback_matches_report` and `test_streamed_secret_precedes_report_build`. The corresponding Windows desktop validation run **37832891065 succeeded**. Root cause: in `pipelineguard/engine.py`, the no-profile (`else`) scanner call did not forward `on_finding` to `scan_directory`; the secret findings were present in the final report but never delivered as events. This defect was exposed by the Linux CI tests; it was not a platform-specific scanner issue. Commit `5af9d15` fixes the no-profile branch to forward the filtered callback, aligning it with full-profile and incremental branches. **Post-fix CI validation is pending**; do not mark the correction verified until tests finish.
+
+
+## GitHub CI recovery and desktop live-event bridge — 2026-10-09
+
+Post-fix GitHub Actions for commit `c19a162` are both green: Ubuntu Security Scan [run 37833332759](https://github.com/ibrahim1101/PipelineGuard/actions/runs/37833332759) and Windows desktop validation [run 37833332754](https://github.com/ibrahim1101/PipelineGuard/actions/runs/37833332754). The missing no-profile callback regression is closed.
+
+Commit `acdd4b8` connects `run_scan(..., on_finding=...)` in the desktop worker to the existing thread-safe `queue.Queue`; only the Tk main thread handles `finding` events, updates the findings table/counter, and allows details inspection before the final report. Scan options are snapshotted before starting the worker to avoid reading Tk variables from the background thread. Final `result` still replaces preliminary findings with the authoritative report. Commit `1c6c174` adds a graphical Tk test for live event display before a final report exists. **Desktop event bridge awaits post-change CI and hands-on UI validation.**
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_finding_callback.py tests/test_desktop_ui.py
+python -m pytest -q -rs
+```
