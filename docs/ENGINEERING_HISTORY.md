@@ -229,3 +229,11 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Observed result:** **121 passed, 1 skipped in 18.57s**, no failures. Expected skip: `tests/test_traversal.py:24`, Windows symlink creation requires Developer Mode or elevated privileges. The user also entered `python -m pipelineguard.desktop`; no screenshot, GUI behavior, or subsequent outcome has been supplied yet.
 
 **Interpretation:** Automated regression suite passed on configuration-help code at `2a3d203`. **Manual GUI acceptance remains unverified:** '?' button visibility, dialog layout, copy-example clipboard, selecting sample JSON and scan behavior. Also, no dedicated automated Tk dialog test is claimed. **Lesson:** Distinguish process invocation and passing non-GUI tests from actual GUI usability verification. Stable v1.0.0 untouched.
+
+## 16. Configuration help manual GUI confirmation — 8 October 2026
+
+**User-reported observation:** After launching `python -m pipelineguard.desktop` on Windows, the user confirmed that the desktop opened and the new '?' configuration-help dialog displayed correctly. This supplements the 121-passed/1-skipped pytest run at local checkout `2a3d203`.
+
+**Verification scope:** Desktop startup and '?' help dialog visibility are **manually confirmed**. Copy-example clipboard contents, sample configuration selection, and actual scan completion **have not yet been reported**. No new automated test or packaging claim is made. Stable v1.0.0 untouched.
+
+**Next acceptance checks:** Copy the example into an editor, select `examples/pipelineguard.example.json`, scan a chosen project, and report the outcome. Record failures or successes as observed.
