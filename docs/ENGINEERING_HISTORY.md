@@ -151,3 +151,35 @@ python scripts/benchmark_v2_secret_cache.py --files 1000 --lines 200 --rounds 3
 ```
 
 **Document version:** 1.0, 8 October 2026. Append dated milestone entries as work continues; preserve failures and superseded measurements rather than rewriting history.
+
+## Ongoing engineering journal — append new entries below
+
+This section is deliberately editable. Preserve past failures and test outputs even after a bug is fixed. When a result is uncertain, label it **unverified** rather than assuming success. For continuity across chats, see [NEW_CHAT_HANDOFF.md](NEW_CHAT_HANDOFF.md).
+
+### Reusable milestone / experiment entry
+
+Copy this template for each meaningful experiment, feature, regression or release milestone:
+
+```markdown
+### YYYY-MM-DD — Short descriptive title
+- **Goal / hypothesis:**
+- **Branch / commit(s):**
+- **Environment:** OS, Python version, relevant tool versions
+- **Change attempted:**
+- **Commands / reproduction steps:**
+- **Expected result:**
+- **Observed result:** include exact error or measurement where possible
+- **Outcome:** PASS / FAIL / SKIP / PARTIAL / NOT VERIFIED
+- **Root cause / analysis:** confirmed vs suspected
+- **Fix / workaround:** including unsuccessful attempts
+- **Retest / evidence:** CI URLs, test totals, screenshots, benchmark output
+- **What we learned:**
+- **Open follow-ups / risks:**
+```
+
+### 2026-10-08 — Documentation continuity and new-chat handoff
+
+- **Goal:** Preserve both successful and unsuccessful development work for future reports, learning and chat continuity.
+- **Change:** Established this Markdown file as the version-controlled, append-only engineering journal; created `docs/NEW_CHAT_HANDOFF.md` for fresh-chat onboarding.
+- **Outcome:** Documentation changes committed to the v2 development branch. No additional product test result is claimed for this documentation-only milestone.
+- **Lesson:** Durable repository documentation is more reliable than relying on a single long chat history.
