@@ -713,3 +713,8 @@ User supplied an image showing angular pixel/cyber-styled PipelineGuard letterin
 ## User-requested branding rollback — 2026-10-09
 
 User rejected the angular wordmark and altered shield logo as visually incorrect and explicitly requested a revert. Commit `61df471` restores the previously working Segoe UI PipelineGuard header, original `◈ PipelineGuard` sidebar label and 174px sidebar; removes the custom wordmark renderer import/use from the desktop. No scanning logic or SOC charts changed. `pipelineguard/wordmark.py` remains an unused historical file; do not reinstate this experimental branding without explicit user approval. The exact approved mockup cyber-cat logo was never implemented as an asset. Validation pending.
+
+
+## User-supplied approved cyber-cat branding — 2026-10-09
+
+User supplied the exact approved mockup header screenshot, asked to retain its cyber-cat shield logo and white Pipeline/olive Guard treatment, changing only the title font to a suitable cyber/technical typeface. Commit `7c2258c` embeds a 54x53 color-quantized crop of the user-provided logo as a Tk-compatible PNG in `pipelineguard/brand_asset.py` (no redistributed font binary). Commit `4eb469d` displays this logo in the sidebar and header, renders Pipeline and Guard in Bahnschrift Bold where installed (Segoe UI fallback), and preserves the original tagline. Commit `484dbd1` tests logo load and fallback; `336c7b3` removes obsolete test assertions from the rejected experimental pixel-wordmark. Note that the logo crop has a small amount of original mockup background, so the image/background seam should be checked at normal Windows scaling. **CI and user acceptance pending.**
