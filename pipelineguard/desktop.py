@@ -520,9 +520,7 @@ class Desktop:
                 self.events.put(("error", str(exc)))
         threading.Thread(target=worker, daemon=True).start()
 
-    def poll(self):
-        try:
-            kind, value = self.events.get_nowait()
+    def _process_scan_event(self, kind, value):
             if kind == "progress":
                 labels = {
                     "fingerprint": "Fingerprinting files",
@@ -538,14 +536,11 @@ class Desktop:
                 if value.stage.startswith("fingerprint") and value.discovered is not None:
                     stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
                 self.status_label.configure(text=stage, fg=OLIVE_MID)
-                self.root.after(100, self.poll)
-                return
+                return False
             if kind == "finding":
                 self.all_findings.append(value)
                 self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
-                self.refresh_findings()
-                self.root.after(100, self.poll)
-                return
+                return True
             self.scan_button.state(["!disabled"])
             self.progress.stop()
             if kind == "error":
@@ -587,9 +582,26 @@ class Desktop:
                     fg=SAFE if value["dependency_check_complete"] else WARNING)
                 self.refresh_findings()
                 self._draw_charts()
-        except queue.Empty:
-            pass
-        self.root.after(100, self.poll)
+        return False
+    def poll(self):
+        """Drain bounded batches so busy scans do not backlog the Tk event loop."""
+        pending_findings = False
+        try:
+            for _ in range(200):
+                try:
+                    kind, value = self.events.get_nowait()
+                except queue.Empty:
+                    break
+                if kind != "finding" and pending_findings:
+                    self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
+                    self.refresh_findings()
+                    pending_findings = False
+                pending_findings = self._process_scan_event(kind, value) or pending_findings
+            if pending_findings:
+                self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
+                self.refresh_findings()
+        finally:
+            self.root.after(100, self.poll)
 
     def clear_filters(self):
         self.search.set("")
