@@ -105,8 +105,10 @@ class Desktop:
 
         self._label(card, "PROJECT FOLDER", 9, MUTED, True, bg=CARD).grid(
             row=0, column=0, sticky="w", padx=16, pady=(14, 4))
-        ttk.Entry(card, textvariable=self.folder, font=("Segoe UI", 10)).grid(
-            row=1, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        folder_entry = tk.Frame(card, bg=CARD)
+        folder_entry.grid(row=1, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        ttk.Entry(folder_entry, textvariable=self.folder, font=("Segoe UI", 10)).pack(side="left", fill="x", expand=True)
+        ttk.Button(folder_entry, text="×", width=3, command=lambda: self.folder.set("")).pack(side="left", padx=(4, 0))
         ttk.Button(card, text="Choose project", command=self.choose).grid(
             row=1, column=1, padx=(0, 16), pady=(0, 14))
 
@@ -114,8 +116,10 @@ class Desktop:
         config_heading.grid(row=2, column=0, sticky="w", padx=16, pady=(4, 4))
         self._label(config_heading, "CONFIGURATION (OPTIONAL)", 9, MUTED, True, bg=CARD).pack(side="left")
         ttk.Button(config_heading, text="?", width=3, command=self.show_config_help).pack(side="left", padx=(10, 0))
-        ttk.Entry(card, textvariable=self.config, font=("Segoe UI", 10)).grid(
-            row=3, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        config_entry = tk.Frame(card, bg=CARD)
+        config_entry.grid(row=3, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
+        ttk.Entry(config_entry, textvariable=self.config, font=("Segoe UI", 10)).pack(side="left", fill="x", expand=True)
+        ttk.Button(config_entry, text="×", width=3, command=lambda: self.config.set("")).pack(side="left", padx=(4, 0))
         ttk.Button(card, text="Choose config", command=self.choose_config).grid(
             row=3, column=1, padx=(0, 16), pady=(0, 14))
 
@@ -391,6 +395,10 @@ class Desktop:
                 else:
                     self.cache_status.configure(text="Secret scan: full (cache metrics unavailable for this profile)")
                 self.all_findings = value["findings"]
+                self.detail.configure(state="normal")
+                self.detail.delete("1.0", "end")
+                self.detail.insert("end", "Select a finding to inspect its details.")
+                self.detail.configure(state="disabled")
                 self.save_history(value)
                 elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
                 self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
@@ -443,12 +451,12 @@ class Desktop:
                 return
             finding = self.all_findings[index]
             readable = (
-                f"Severity: {finding.get('severity', 'UNKNOWN')}\\n"
-                f"Rule: {finding.get('rule', 'Security finding')}\\n"
-                f"Location: {finding.get('file', finding.get('package', 'N/A'))}\\n\\n"
-                f"Summary\\n{finding.get('summary', 'No summary available.')}\\n\\n"
-                f"Remediation\\n{finding.get('remediation', 'Review this finding and remove or secure the affected value.')}\\n\\n"
-                f"Technical details\\n{json.dumps(finding, indent=2)}"
+                f"Severity: {finding.get('severity', 'UNKNOWN')}\n"
+                f"Rule: {finding.get('rule', 'Security finding')}\n"
+                f"Location: {finding.get('file', finding.get('package', 'N/A'))}\n\n"
+                f"Summary\n{finding.get('summary', 'No summary available.')}\n\n"
+                f"Remediation\n{finding.get('remediation', 'Review this finding and remove or secure the affected value.')}\n\n"
+                f"Technical details\n{json.dumps(finding, indent=2)}"
             )
             self.detail.insert("end", readable)
             self.detail.configure(state="disabled")
