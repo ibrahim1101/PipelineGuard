@@ -364,3 +364,15 @@ Offline OSV reported 0.00 ms. Cache: 84 discovered, 57 hashed each run; scanned/
 ## Git context concurrent-query optimization — 2026-10-08
 
 Earlier attempts to update `pipelineguard/git_context.py` were blocked by GitHub write safety checks, with no changes committed. User requested retry; successful commit `f4ecb50` parallelized the independent branch, porcelain status, and origin remote Git queries using `ThreadPoolExecutor(max_workers=3)` after resolving HEAD. Existing field names, dirty detection (including untracked files), and remote redaction logic were retained. **Performance improvement is hypothetical pending Windows validation** against the prior ~123–132 ms `git_context_ms` baseline; regression tests also pending. Test using `python -m scripts.engine_timing` and `python -m pytest -q` after pulling v2. Stable v1.0.0 unchanged.
+
+## Windows validation: concurrent Git metadata optimization — 2026-10-08
+
+User pulled through `2d4c7ee` and ran `python -m scripts.engine_timing` and `python -m pytest -q` on Windows PowerShell. Offline Standard-profile results after parallel Git context reads:
+
+| Run | Setup ms | Dependencies ms | Secrets ms | Report build ms | Git context ms | Report total ms | Overall ms | Secret scanned/reused |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | 30.98 | 7.75 | 36.38 | 0.02 | 72.06 | 72.11 | 147.23 | 29 / 55 |
+| 2 | 29.11 | 7.81 | 29.25 | 0.01 | 67.38 | 67.42 | 133.60 | 27 / 57 |
+| 3 | 28.46 | 7.34 | 33.78 | 0.01 | 59.58 | 59.61 | 129.20 | 27 / 57 |
+
+Each run discovered 84 files, hashed 57; zero skipped_size, skipped_changed, or skipped_error. All runs returned policy `BLOCKED`, not an execution error; OSV offline stage 0.00 ms. Compared with immediately preceding serial Git baseline, Git context improved 132.17→72.06 ms (run 1), 127.05→67.38 ms (run 2), 123.04→59.58 ms (run 3), or ~45.5%, ~47.0%, ~51.6% reductions. Total scan time improved 205.52→147.23 ms (~28.4%), 192.11→133.60 ms (~30.5%), 187.17→129.20 ms (~31.0%). These are three sequential single-machine offline measurements, not a controlled multi-trial statistical benchmark or online OSV measurements. **Regression validation:** `129 passed, 1 skipped in 20.52s`, zero failures; skip reason not verified in this run. Optimization accepted provisionally on observed results; further Git status and subprocess work should retain dirty/untracked accuracy, credential redaction, and regression coverage.
