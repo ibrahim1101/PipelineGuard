@@ -330,3 +330,17 @@ Implemented optional `timings` dictionary parameter on `pipelineguard.engine.run
 Created `scripts/engine_timing.py` in commit `6f8568f`. It accepts an optional project path, `--runs` (default 3), and `--profile` (default Standard), calls `run_scan(..., online=False, timings=...)`, and prints individual stage durations plus cache counters. It replaces the previously chat-only PowerShell here-string profiling command with a version-controlled script. **Previous step:** the optional engine timing parameter was added in commit `2e6e89c`, and its implementation was documented in `55471d2`. An earlier attempt to add profiling instrumentation and a profiling script was blocked by GitHub safety checks; those attempts made no commit. The real-project pre-instrumentation timing baseline (238.25, 197.86, 196.03 ms; 83 files, 56 reused warm) was already recorded in commit `a436aa7`. 
 
 Windows validation commands: `git pull origin feat/v2-engine-integration`, `python -m scripts.engine_timing`, and `python -m pytest -q`. New per-stage output and current regression results are **pending**; do not record them as passing until the user provides results. All changes remain on v2 development branch, not stable v1.0.0.
+
+## Windows end-to-end stage profiling and regression validation — 2026-10-08
+
+User pulled `feat/v2-engine-integration` through commit `17a9ff5` and ran `python -m scripts.engine_timing` against the PipelineGuard repository (offline Standard profile). Results (milliseconds):
+
+| Run | Setup | Dependencies | Offline OSV | Secrets | Report stage | Total | Scanned / reused |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | 30.82 | 7.30 | 0.00 | 41.50 | 119.10 | 198.72 | 30 / 54 |
+| 2 | 27.62 | 6.79 | 0.00 | 27.16 | 106.33 | 167.91 | 27 / 57 |
+| 3 | 27.44 | 6.83 | 0.00 | 32.50 | 116.59 | 183.36 | 27 / 57 |
+
+Each run discovered 84 files, hashed 57, and returned `status=BLOCKED` (policy result); skipped size/changed/error all zero. First run rescanned three formerly cached eligible files after repository changes; later runs reused all 57 eligible files. Report-stage timing currently includes `build_report`, policy evaluation, metadata, optional Git context and baseline handling; it is **not** a measurement of HTML serialization alone. This stage dominated measured time (~63% in run 2) and merits substage investigation before optimization. Online OSV network latency is excluded.
+
+**Regression check:** User ran `python -m pytest -q` and observed **129 passed, 1 skipped in 25.19s**, zero failures. Skip reason not confirmed in this run. These are user-provided Windows results, not CI confirmation. Next: isolate report construction vs Git context/policy before modifying behavior; preserve stable v1.0.0.
