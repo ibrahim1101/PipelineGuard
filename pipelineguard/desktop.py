@@ -101,6 +101,7 @@ class Desktop:
         except Exception:
             pass
         self.online = tk.BooleanVar(value=True)
+        self.scan_profile = tk.StringVar(value="Standard")
 
         self._label(card, "PROJECT FOLDER", 9, MUTED, True, bg=CARD).grid(
             row=0, column=0, sticky="w", padx=16, pady=(14, 4))
@@ -120,6 +121,10 @@ class Desktop:
 
         options = tk.Frame(card, bg=CARD)
         options.grid(row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
+        tk.Label(options, text="Scan profile:", bg=CARD, fg=INK,
+                 font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 6))
+        ttk.Combobox(options, textvariable=self.scan_profile, state="readonly", width=11,
+                     values=("Quick", "Standard", "Deep", "Release", "Forensic")).pack(side="left", padx=(0, 14))
         tk.Checkbutton(options, text="Enable live OSV vulnerability lookup",
                        variable=self.online, bg=CARD, fg=INK, activebackground=CARD,
                        selectcolor=OLIVE_LIGHT, font=("Segoe UI", 10)).pack(side="left")
@@ -156,7 +161,9 @@ class Desktop:
         self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
         self.progress = ttk.Progressbar(self.root, mode="indeterminate",
                                         style="Horizontal.TProgressbar")
-        self.progress.pack(fill="x", padx=24, pady=(0, 14))
+        self.progress.pack(fill="x", padx=24, pady=(0, 4))
+        self.cache_status = self._label(self.root, "Cache: —", 9, MUTED)
+        self.cache_status.pack(anchor="w", padx=28, pady=(0, 10))
 
     def _build_findings(self):
         self._label(self.root, "Security findings", 15, OLIVE_DEEP, True).pack(
@@ -319,12 +326,15 @@ class Desktop:
         self.detail.delete("1.0", "end")
         self.detail.insert("end", "PipelineGuard is analyzing the selected project.")
         self.detail.configure(state="disabled")
+        self.cache_status.configure(text="Cache: scanning…")
         self.progress.start(12)
 
         def worker():
             try:
                 config = Path(self.config.get()) if self.config.get() else None
-                result = run_scan(Path(self.folder.get()), config, self.online.get())
+                result = run_scan(Path(self.folder.get()), config, self.online.get(),
+                                  profile=self.scan_profile.get().lower(),
+                                  progress=lambda event: self.events.put(("progress", event)))
                 self.events.put(("result", result))
             except Exception as exc:
                 self.events.put(("error", str(exc)))
@@ -333,6 +343,23 @@ class Desktop:
     def poll(self):
         try:
             kind, value = self.events.get_nowait()
+            if kind == "progress":
+                labels = {
+                    "fingerprint": "Fingerprinting files",
+                    "fingerprint-complete": "Fingerprinting complete",
+                    "fingerprint-unavailable": "Fingerprint cache unavailable; continuing",
+                    "dependencies": "Scanning dependencies",
+                    "vulnerability-intelligence": "Checking vulnerability intelligence",
+                    "secrets": "Scanning for secrets",
+                    "secrets-complete": "Secret scanning complete",
+                    "complete": "Finishing scan",
+                }
+                stage = labels.get(value.stage, value.stage)
+                if value.stage.startswith("fingerprint") and value.discovered is not None:
+                    stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
+                self.status_label.configure(text=stage, fg=OLIVE_MID)
+                self.root.after(100, self.poll)
+                return
             self.scan_button.state(["!disabled"])
             self.progress.stop()
             if kind == "error":
@@ -342,6 +369,14 @@ class Desktop:
                 messagebox.showerror("Scan failed", value)
             else:
                 self.report = value
+                metrics = value.get("secret_cache")
+                if metrics:
+                    scanned = metrics.get("scanned")
+                    count = "unknown" if scanned is None else str(scanned)
+                    self.cache_status.configure(text=f"Secret scan: {metrics.get('strategy', 'unknown')} · "
+                                                     f"{count} scanned · {metrics.get('reused', 0)} reused")
+                else:
+                    self.cache_status.configure(text="Secret scan: full (cache metrics unavailable for this profile)")
                 self.all_findings = value["findings"]
                 self.save_history(value)
                 elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
