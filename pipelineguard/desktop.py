@@ -73,15 +73,6 @@ class Desktop:
         self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        sidebar_brand = tk.Frame(self.sidebar, bg=OLIVE_DEEP)
-        sidebar_brand.pack(fill="x", padx=6, pady=(22, 28))
-        tk.Label(sidebar_brand, image=self.cat_logo, bg=OLIVE_DEEP, borderwidth=0).pack(side="left")
-        brand_words = tk.Frame(sidebar_brand, bg=OLIVE_DEEP)
-        brand_words.pack(side="left", padx=(2, 0))
-        tk.Label(brand_words, text="Pipeline", bg=OLIVE_DEEP, fg=WHITE,
-                 font=(self.brand_font, 11, "bold")).pack(anchor="w")
-        tk.Label(brand_words, text="Guard", bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
-                 font=(self.brand_font, 11, "bold")).pack(anchor="w")
         self.workspace = tk.Frame(self.root, bg=CANVAS)
         self.workspace.pack(side="left", fill="both", expand=True)
         navigation = (
