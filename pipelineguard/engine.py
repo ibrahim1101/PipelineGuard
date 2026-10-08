@@ -79,8 +79,8 @@ def run_scan(
     if use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
         secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
         # Full scans do not reuse findings; preserve the telemetry contract.
-        discovered = sum(1 for _ in iter_files(path.resolve(), settings.ignored_directories))
-        secret_metrics.update({"discovered": discovered, "hashed": 0, "scanned": discovered,
+        # A full scan does not expose per-file counters. Avoid reporting guessed counts.
+        secret_metrics.update({"discovered": 0, "hashed": 0, "scanned": 0,
                                "reused": 0, "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0})
     elif use_secret_cache:
         secrets = scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
