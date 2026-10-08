@@ -206,59 +206,34 @@ class Desktop:
         ttk.Button(window, text="Close", command=window.destroy).pack()
 
     def _build_controls(self):
-        card = tk.Frame(self.workspace, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-        card.pack(fill="x", padx=24, pady=(18, 10))
+        """Initialize shared scan state; secondary actions live in a compact tools row."""
         self.folder = tk.StringVar()
-        try:
-            if self.preferences_file.exists():
-                self.folder.set(json.loads(self.preferences_file.read_text(encoding="utf-8")).get("last_project", ""))
-        except Exception:
-            pass
         self.config = tk.StringVar()
         try:
             if self.preferences_file.exists():
-                self.config.set(json.loads(self.preferences_file.read_text(encoding="utf-8")).get("last_config", ""))
-        except Exception:
+                saved = json.loads(self.preferences_file.read_text(encoding="utf-8"))
+                self.folder.set(saved.get("last_project", ""))
+                self.config.set(saved.get("last_config", ""))
+        except (OSError, ValueError, TypeError, AttributeError):
             pass
         self.online = tk.BooleanVar(value=True)
         self.scan_profile = tk.StringVar(value="Standard")
-
-        self._label(card, "PROJECT FOLDER", 9, MUTED, True, bg=CARD).grid(
-            row=0, column=0, sticky="w", padx=16, pady=(14, 4))
-        folder_entry = tk.Frame(card, bg=CARD)
-        folder_entry.grid(row=1, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
-        ttk.Entry(folder_entry, textvariable=self.folder, font=("Segoe UI", 10)).pack(side="left", fill="x", expand=True)
-        ttk.Button(folder_entry, text="×", width=3, command=lambda: self.folder.set("")).pack(side="left", padx=(4, 0))
-        ttk.Button(card, text="Choose project", command=self.choose).grid(
-            row=1, column=1, padx=(0, 16), pady=(0, 14))
-
-        config_heading = tk.Frame(card, bg=CARD)
-        config_heading.grid(row=2, column=0, sticky="w", padx=16, pady=(4, 4))
-        self._label(config_heading, "CONFIGURATION (OPTIONAL)", 9, MUTED, True, bg=CARD).pack(side="left")
-        ttk.Button(config_heading, text="?", width=3, command=self.show_config_help).pack(side="left", padx=(10, 0))
-        config_entry = tk.Frame(card, bg=CARD)
-        config_entry.grid(row=3, column=0, sticky="ew", padx=(16, 8), pady=(0, 14))
-        ttk.Entry(config_entry, textvariable=self.config, font=("Segoe UI", 10)).pack(side="left", fill="x", expand=True)
-        ttk.Button(config_entry, text="×", width=3, command=lambda: self.config.set("")).pack(side="left", padx=(4, 0))
-        ttk.Button(card, text="Choose config", command=self.choose_config).grid(
-            row=3, column=1, padx=(0, 16), pady=(0, 14))
-
-        options = tk.Frame(card, bg=CARD)
-        options.grid(row=4, column=0, columnspan=2, sticky="ew", padx=16, pady=(0, 14))
-        tk.Label(options, text="Scan profile:", bg=CARD, fg=INK,
-                 font=("Segoe UI", 10, "bold")).pack(side="left", padx=(0, 6))
-        ttk.Combobox(options, textvariable=self.scan_profile, state="readonly", width=11,
-                     values=("Quick", "Standard", "Deep", "Release", "Forensic")).pack(side="left", padx=(0, 14))
-        tk.Checkbutton(options, text="Enable live OSV vulnerability lookup",
-                       variable=self.online, bg=CARD, fg=INK, activebackground=CARD,
+        tools = tk.Frame(self.workspace, bg=CANVAS)
+        tools.pack(fill="x", padx=24, pady=(10, 10))
+        tk.Label(tools, text="SCAN OPTIONS", bg=CANVAS, fg=OLIVE_LIGHT,
+                 font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 12))
+        tk.Checkbutton(tools, text="Live OSV lookup", variable=self.online,
+                       bg=CANVAS, fg=INK, activebackground=CANVAS,
                        activeforeground=INK, selectcolor=OLIVE_DARK,
-                       font=("Segoe UI", 10)).pack(side="left")
-        self.scan_button = ttk.Button(options, text="Scan project", command=self.scan)
-        self.scan_button.pack(side="right")
-        ttk.Button(options, text="Export report", command=self.export).pack(side="right", padx=(0, 8))
-        ttk.Button(options, text="Open report folder", command=self.open_report_folder).pack(side="right", padx=(0, 8))
-        ttk.Button(options, text="Scan history", command=self.show_history).pack(side="right", padx=(0, 8))
-        card.columnconfigure(0, weight=1)
+                       font=("Segoe UI", 9)).pack(side="left")
+        ttk.Button(tools, text="Config…", command=self.choose_config).pack(side="left", padx=(12, 4))
+        ttk.Button(tools, text="?", width=3, command=self.show_config_help).pack(side="left")
+        self.scan_button = ttk.Button(tools, text="Scan project", command=self.scan)
+        # Retained for existing scan state management; top toolbar is primary action.
+        self.scan_button.pack_forget()
+        ttk.Button(tools, text="Export report", command=self.export).pack(side="right", padx=(6, 0))
+        ttk.Button(tools, text="Open reports", command=self.open_report_folder).pack(side="right", padx=(6, 0))
+        ttk.Button(tools, text="Scan history", command=self.show_history).pack(side="right")
 
     def _metric(self, parent, title, value="—", color=INK):
         box = tk.Frame(parent, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
