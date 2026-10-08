@@ -59,6 +59,7 @@ class Desktop:
         self._build_controls()
         self._build_dashboard()
         self._build_analytics()
+        self._build_charts()
         self._build_findings()
         self.root.after(100, self.poll)
 
@@ -258,12 +259,81 @@ class Desktop:
             self.recent_scans_text.configure(text="\\n".join(lines) if lines else "No completed scans yet.")
         except (OSError, ValueError, TypeError):
             self.recent_scans_text.configure(text="Scan history unavailable.")
+        if hasattr(self, "trend_chart"):
+            self._draw_charts()
         if report is not None:
             summary = report.get("summary", {})
             cache = report.get("secret_cache") or {}
             self.scan_insights_text.configure(
                 text=(f"Critical: {summary.get('critical', 0)}  |  Warnings: {summary.get('warnings', 0)}\\n"
                       f"Secret files scanned: {cache.get('scanned', '—')}  |  Reused: {cache.get('reused', '—')}"))
+
+    def _build_charts(self):
+        """Canvas charts based exclusively on persisted scans and actual findings."""
+        row = tk.Frame(self.workspace, bg=CANVAS)
+        row.pack(fill="x", padx=24, pady=(0, 10))
+        for title, name in (("FINDINGS TREND · LAST 10 SCANS", "trend_chart"),
+                            ("FINDINGS BY SEVERITY", "severity_chart")):
+            card = tk.Frame(row, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+            card.pack(side="left", fill="both", expand=True, padx=(0, 10))
+            self._label(card, title, 9, OLIVE_LIGHT, True, bg=CARD).pack(
+                anchor="w", padx=12, pady=(8, 2))
+            canvas = tk.Canvas(card, bg=CARD, height=95, highlightthickness=0)
+            canvas.pack(fill="x", padx=10, pady=(0, 6))
+            setattr(self, name, canvas)
+            canvas.bind("<Configure>", lambda _event: self._draw_charts())
+        self._draw_charts()
+
+    def _draw_charts(self):
+        if not hasattr(self, "trend_chart"):
+            return
+        trend = self.trend_chart
+        trend.delete("all")
+        width = max(trend.winfo_width(), 200)
+        try:
+            history = json.loads(self.history_file.read_text(encoding="utf-8")) if self.history_file.exists() else []
+            values = [max(0, int(entry["findings"])) for entry in history[-10:]
+                      if isinstance(entry, dict) and str(entry.get("findings", "")).isdigit()]
+        except (OSError, ValueError, TypeError):
+            values = []
+        if not values:
+            trend.create_text(12, 44, anchor="w", text="No historical scan data yet", fill=MUTED)
+        else:
+            peak = max(max(values), 1)
+            points = []
+            for index, count in enumerate(values):
+                x = 20 + index * (width - 42) / max(len(values) - 1, 1)
+                y = 72 - (count / peak) * 52
+                points.extend((x, y))
+                trend.create_oval(x - 3, y - 3, x + 3, y + 3, fill=OLIVE, outline=OLIVE)
+            if len(points) >= 4:
+                trend.create_line(*points, fill=OLIVE_LIGHT, width=2)
+            trend.create_text(12, 84, anchor="w", text=f"{len(values)} scans  ·  latest: {values[-1]} findings",
+                              fill=MUTED, font=("Segoe UI", 9))
+        severity = self.severity_chart
+        severity.delete("all")
+        if self.report is None:
+            severity.create_text(12, 44, anchor="w", text="Scan a project to see severity distribution", fill=MUTED)
+            return
+        findings = self.report.get("findings", [])
+        counts = {"CRITICAL": 0, "HIGH": 0, "WARNING": 0, "OTHER": 0}
+        for item in findings:
+            level = str(item.get("severity", "")).upper()
+            counts[level if level in counts else "OTHER"] += 1
+        total = max(sum(counts.values()), 1)
+        colors = {"CRITICAL": BLOCKED, "HIGH": "#E28B59", "WARNING": WARNING, "OTHER": OLIVE}
+        x = 12
+        available = max(width - 28, 1)
+        for level, count in counts.items():
+            if count:
+                segment = available * count / total
+                severity.create_rectangle(x, 14, x + segment, 32, fill=colors[level], outline="")
+                x += segment
+        severity.create_text(12, 57, anchor="w", fill=INK,
+                             text="  ·  ".join(f"{key.title()}: {value}" for key, value in counts.items() if value),
+                             font=("Segoe UI", 9))
+        if not findings:
+            severity.create_text(12, 57, anchor="w", text="No findings detected", fill=SAFE)
 
     def _build_findings(self):
         self._label(self.workspace, "Security findings", 15, OLIVE_LIGHT, True).pack(
@@ -516,6 +586,7 @@ class Desktop:
                     text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
                     fg=SAFE if value["dependency_check_complete"] else WARNING)
                 self.refresh_findings()
+                self._draw_charts()
         except queue.Empty:
             pass
         self.root.after(100, self.poll)
