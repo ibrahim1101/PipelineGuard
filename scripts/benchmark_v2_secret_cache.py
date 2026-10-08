@@ -15,7 +15,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pipelineguard.secret_cache import scan_secrets_incremental
+from pipelineguard.secret_cache import scan_secrets_incremental, choose_scan_strategy
 from scanners.secret_scanner import scan_directory
 
 
@@ -54,17 +54,23 @@ def main() -> None:
         limit = 1_000_000
         fresh = lambda: scan_directory(root, ignored, limit)
         incremental = lambda: scan_secrets_incremental(root, ignored, limit)
+        adaptive = lambda: (fresh() if choose_scan_strategy(root, ignored, limit) == "full" else incremental())
+        strategy = choose_scan_strategy(root, ignored, limit)
         baseline = fresh()
         first = incremental()
         reused = incremental()
-        if baseline != first or baseline != reused:
+        if baseline != first or baseline != reused or baseline != adaptive():
             raise AssertionError("Cached findings differ from a full scan")
         cold_median, _ = measure(fresh, args.rounds)
         warm_median, _ = measure(incremental, args.rounds)
+        adaptive_median, _ = measure(adaptive, args.rounds)
         print(f"Files: {args.files}; lines/file: {args.lines}; rounds: {args.rounds}")
+        print(f"Adaptive strategy: {strategy}")
         print(f"Fresh full-scan median: {cold_median:.4f}s")
         print(f"Warm cache median:      {warm_median:.4f}s")
         print(f"Speed ratio (fresh/warm): {cold_median / warm_median:.2f}x" if warm_median else "Warm scan too fast to measure")
+        print(f"Adaptive median:       {adaptive_median:.4f}s")
+        print(f"Adaptive ratio:        {cold_median / adaptive_median:.2f}x" if adaptive_median else "Adaptive too fast to measure")
         print("Parity: PASS")
 
 
