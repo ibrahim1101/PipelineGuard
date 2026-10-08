@@ -39,6 +39,7 @@ def run_scan(
     baseline_path: Path | None = None,
     update_baseline: bool = False,
     timings: dict[str, float] | None = None,
+    on_finding: Callable[[dict[str, object]], None] | None = None,
 ):
     """Scan a project, optionally collecting v2 telemetry and baseline differences.
 
@@ -111,10 +112,14 @@ def run_scan(
         timings["secrets_ms"] = (perf_counter() - stage_started) * 1000
     stage_started = perf_counter()
     report_build_started = perf_counter()
-    report = build_report(
-        apply_allowlist(secrets, settings.allowlist),
-        apply_allowlist(records + vulnerabilities, settings.allowlist),
-    )
+    visible_secrets = apply_allowlist(secrets, settings.allowlist)
+    visible_other = apply_allowlist(records + vulnerabilities, settings.allowlist)
+    if on_finding is not None:
+        # Findings are emitted only after allowlist filtering. Callback failures
+        # propagate rather than silently producing an incomplete scan.
+        for finding in (*visible_secrets, *visible_other):
+            on_finding(dict(finding))
+    report = build_report(visible_secrets, visible_other)
     if timings is not None:
         timings["report_build_ms"] = (perf_counter() - report_build_started) * 1000
     report["scanned_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
