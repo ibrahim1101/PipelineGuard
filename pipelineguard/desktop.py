@@ -67,14 +67,14 @@ class Desktop:
 
     def _build_shell(self):
         """SOC navigation shell; existing scanner widgets remain intact."""
-        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=174)
+        self.sidebar = tk.Frame(self.root, bg=OLIVE_DEEP, width=240)
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
-        brand = tk.Canvas(self.sidebar, width=166, height=75, bg=OLIVE_DEEP,
+        brand = tk.Canvas(self.sidebar, width=228, height=102, bg=OLIVE_DEEP,
                           highlightthickness=0)
-        brand.pack(anchor="w", padx=5, pady=(15, 17))
-        draw_cat_shield(brand, 9, 3, scale=1, color=OLIVE_LIGHT)
-        draw_wordmark(brand, 9, 45, scale=1, color=OLIVE_LIGHT)
+        brand.pack(anchor="w", padx=6, pady=(14, 12))
+        draw_cat_shield(brand, 8, 16, scale=2, color=OLIVE_LIGHT)
+        draw_wordmark(brand, 65, 31, scale=2, color=OLIVE_LIGHT)
         self.sidebar_brand = brand
         self.workspace = tk.Frame(self.root, bg=CANVAS)
         self.workspace.pack(side="left", fill="both", expand=True)
