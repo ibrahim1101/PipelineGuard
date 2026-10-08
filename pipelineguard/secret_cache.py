@@ -7,6 +7,10 @@ from pathlib import Path
 from scanners.secret_scanner import RULES, scan_file
 from scanners.traversal import iter_files
 
+# Files smaller than this cost less to scan than to hash and cache on typical SSDs.
+# This is an experimental threshold pending platform-specific benchmarks.
+MIN_CACHE_BYTES = 1024
+
 
 
 def _safe_cached_findings(value: object, relative: str) -> bool:
@@ -36,7 +40,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
     except (OSError, ValueError, TypeError):
         cache = {}
     previous = cache.get("files", {}) if isinstance(cache.get("files"), dict) else {}
-    cache_dirty = cache.get("version") != 1
+    cache_dirty = cache.get("version") != 1 or cache.get("min_cache_bytes") != MIN_CACHE_BYTES
     # Cache entries are only hints: unchanged metadata is insufficient for trust.
     # Continue hashing content to detect same-size/same-mtime modifications.
     updated = {}
@@ -50,6 +54,16 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
             before = file_path.stat()
             if before.st_size > max_file_size:
                 counts["skipped_size"] += 1
+                continue
+            if before.st_size < MIN_CACHE_BYTES:
+                # Scan tiny files directly; no hash, cache lookup or persistence.
+                findings = scan_file(file_path, root, max_file_size)
+                final = file_path.stat()
+                if (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_ino) != (final.st_size, final.st_mtime_ns, final.st_ctime_ns, final.st_ino):
+                    counts["skipped_changed"] += 1
+                    continue
+                counts["scanned"] += 1
+                results.extend(findings)
                 continue
             digest = hashlib.sha256()
             with file_path.open("rb") as handle:
@@ -87,7 +101,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
     try:
         store.parent.mkdir(parents=True, exist_ok=True)
         temporary = store.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"version": 1, "signature": signature, "limit": max_file_size, "files": updated}), encoding="utf-8")
+        temporary.write_text(json.dumps({"version": 1, "signature": signature, "limit": max_file_size, "min_cache_bytes": MIN_CACHE_BYTES, "files": updated}), encoding="utf-8")
         temporary.replace(store)
     except OSError:
         pass
