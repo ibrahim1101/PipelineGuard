@@ -683,3 +683,8 @@ User visually verified Stage 1 sidebar screenshot and authorized continued imple
 ## SOC dark theme accepted and real analytics panel milestone — 2026-10-09
 
 User explicitly confirmed the dark desktop theme is working, but could not supply a screenshot. This is user-reported hands-on success, not an automated test result. Commit `d80d75d` adds two SOC overview panels: recent scans from the persisted 25-entry local history (display last three) and scan insights based on the actual report summary and secret cache metrics. Refresh on completed scan and after history clearing. The UI has no invented chart points or fake historical projects. CI/Windows verification for the analytics change remains pending. Follow-up: genuine history trend chart, severity distribution, responsive layout and pixel-cat loading state.
+
+
+## SOC dashboard charts milestone — 2026-10-09
+
+User confirmed prior dark SOC layout looked good and authorized full build. Commit `ef2cc7b` adds Tk Canvas charts for the last 10 genuine history finding counts and current report severity distribution. Empty history/report displays explanatory text rather than invented statistics. Commit `98d7e7a` adds Tk tests for history points and empty states. **CI and Windows acceptance remain unverified for these changes**. Planned remaining scope includes polished cyber-cat branding/pixel-art loader, live event batching, accessible responsive layout, additional real analytics, Windows packaging, full CI/release validation. Local commands: `python -m pytest -q tests/test_desktop_ui.py` and `python -m pytest -q -rs`.
