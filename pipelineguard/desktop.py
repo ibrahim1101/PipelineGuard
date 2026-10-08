@@ -521,68 +521,68 @@ class Desktop:
         threading.Thread(target=worker, daemon=True).start()
 
     def _process_scan_event(self, kind, value):
-            if kind == "progress":
-                labels = {
-                    "fingerprint": "Fingerprinting files",
-                    "fingerprint-complete": "Fingerprinting complete",
-                    "fingerprint-unavailable": "Fingerprint cache unavailable; continuing",
-                    "dependencies": "Scanning dependencies",
-                    "vulnerability-intelligence": "Checking vulnerability intelligence",
-                    "secrets": "Scanning for secrets",
-                    "secrets-complete": "Secret scanning complete",
-                    "complete": "Finishing scan",
-                }
-                stage = labels.get(value.stage, value.stage)
-                if value.stage.startswith("fingerprint") and value.discovered is not None:
-                    stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
-                self.status_label.configure(text=stage, fg=OLIVE_MID)
-                return False
-            if kind == "finding":
-                self.all_findings.append(value)
-                self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
-                return True
-            self.scan_button.state(["!disabled"])
-            self.progress.stop()
-            if kind == "error":
-                self.status.set("Scan failed")
-                self.status_label.configure(text=value, fg=BLOCKED)
-                self.status_value.configure(text="ERROR", fg=BLOCKED)
-                messagebox.showerror("Scan failed", value)
+        if kind == "progress":
+            labels = {
+                "fingerprint": "Fingerprinting files",
+                "fingerprint-complete": "Fingerprinting complete",
+                "fingerprint-unavailable": "Fingerprint cache unavailable; continuing",
+                "dependencies": "Scanning dependencies",
+                "vulnerability-intelligence": "Checking vulnerability intelligence",
+                "secrets": "Scanning for secrets",
+                "secrets-complete": "Secret scanning complete",
+                "complete": "Finishing scan",
+            }
+            stage = labels.get(value.stage, value.stage)
+            if value.stage.startswith("fingerprint") and value.discovered is not None:
+                stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
+            self.status_label.configure(text=stage, fg=OLIVE_MID)
+            return False
+        if kind == "finding":
+            self.all_findings.append(value)
+            self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
+            return True
+        self.scan_button.state(["!disabled"])
+        self.progress.stop()
+        if kind == "error":
+            self.status.set("Scan failed")
+            self.status_label.configure(text=value, fg=BLOCKED)
+            self.status_value.configure(text="ERROR", fg=BLOCKED)
+            messagebox.showerror("Scan failed", value)
+        else:
+            self.report = value
+            metrics = value.get("secret_cache")
+            if metrics:
+                scanned = metrics.get("scanned")
+                count = "unknown" if scanned is None else str(scanned)
+                self.cache_status.configure(text=f"Secret scan: {metrics.get('strategy', 'unknown')} · "
+                                                 f"{count} scanned · {metrics.get('reused', 0)} reused")
             else:
-                self.report = value
-                metrics = value.get("secret_cache")
-                if metrics:
-                    scanned = metrics.get("scanned")
-                    count = "unknown" if scanned is None else str(scanned)
-                    self.cache_status.configure(text=f"Secret scan: {metrics.get('strategy', 'unknown')} · "
-                                                     f"{count} scanned · {metrics.get('reused', 0)} reused")
-                else:
-                    self.cache_status.configure(text="Secret scan: full (cache metrics unavailable for this profile)")
-                self.all_findings = value["findings"]
-                self.detail.configure(state="normal")
-                self.detail.delete("1.0", "end")
-                self.detail.insert("end", "Select a finding to inspect its details.")
-                self.detail.configure(state="disabled")
-                self.save_history(value)
-                self._refresh_analytics(value)
-                elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
-                self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
-                status = value["status"]
-                color = SAFE if status == "SAFE" else WARNING if status == "WARNING" else BLOCKED
-                self.status.set(f"{status} · {len(value['findings'])} findings · "
-                                f"Dependency lookup {'complete' if value['dependency_check_complete'] else 'incomplete'}")
-                self.status_label.configure(text=self.status.get(), fg=color)
-                self.status_value.configure(text=status, fg=color)
-                self.score_value.configure(text=f"{value['score']}/100", fg=color)
-                self.findings_value.configure(text=str(len(value["findings"])), fg=color)
-                self.critical_value.configure(text=str(value["summary"]["critical"]), fg=BLOCKED)
-                self.warning_value.configure(text=str(value["summary"]["warnings"]), fg=WARNING)
-                self.dependency_value.configure(
-                    text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
-                    fg=SAFE if value["dependency_check_complete"] else WARNING)
-                self.refresh_findings()
-                self._draw_charts()
-        return False
+                self.cache_status.configure(text="Secret scan: full (cache metrics unavailable for this profile)")
+            self.all_findings = value["findings"]
+            self.detail.configure(state="normal")
+            self.detail.delete("1.0", "end")
+            self.detail.insert("end", "Select a finding to inspect its details.")
+            self.detail.configure(state="disabled")
+            self.save_history(value)
+            self._refresh_analytics(value)
+            elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
+            self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
+            status = value["status"]
+            color = SAFE if status == "SAFE" else WARNING if status == "WARNING" else BLOCKED
+            self.status.set(f"{status} · {len(value['findings'])} findings · "
+                            f"Dependency lookup {'complete' if value['dependency_check_complete'] else 'incomplete'}")
+            self.status_label.configure(text=self.status.get(), fg=color)
+            self.status_value.configure(text=status, fg=color)
+            self.score_value.configure(text=f"{value['score']}/100", fg=color)
+            self.findings_value.configure(text=str(len(value["findings"])), fg=color)
+            self.critical_value.configure(text=str(value["summary"]["critical"]), fg=BLOCKED)
+            self.warning_value.configure(text=str(value["summary"]["warnings"]), fg=WARNING)
+            self.dependency_value.configure(
+                text="COMPLETE" if value["dependency_check_complete"] else "INCOMPLETE",
+                fg=SAFE if value["dependency_check_complete"] else WARNING)
+            self.refresh_findings()
+            self._draw_charts()
+    return False
     def poll(self):
         """Drain bounded batches so busy scans do not backlog the Tk event loop."""
         pending_findings = False
