@@ -58,6 +58,7 @@ class Desktop:
         self._build_header()
         self._build_controls()
         self._build_dashboard()
+        self._build_analytics()
         self._build_findings()
         self.root.after(100, self.poll)
 
@@ -222,6 +223,47 @@ class Desktop:
         self.progress.pack(fill="x", padx=24, pady=(0, 4))
         self.cache_status = self._label(self.workspace, "Cache: —", 9, MUTED)
         self.cache_status.pack(anchor="w", padx=28, pady=(0, 10))
+
+    def _build_analytics(self):
+        """Real scan-history summary, without fabricated trend data."""
+        panel = tk.Frame(self.workspace, bg=CANVAS)
+        panel.pack(fill="x", padx=24, pady=(0, 12))
+        history_card = tk.Frame(panel, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        history_card.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self._label(history_card, "RECENT SCANS", 10, OLIVE_LIGHT, True, bg=CARD).pack(
+            anchor="w", padx=14, pady=(10, 4))
+        self.recent_scans_text = self._label(history_card, "No completed scans yet.", 10, INK,
+                                            bg=CARD, justify="left", anchor="nw")
+        self.recent_scans_text.pack(fill="x", padx=14, pady=(0, 12))
+        insight_card = tk.Frame(panel, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
+        insight_card.pack(side="left", fill="both", expand=True)
+        self._label(insight_card, "SCAN INSIGHTS", 10, OLIVE_LIGHT, True, bg=CARD).pack(
+            anchor="w", padx=14, pady=(10, 4))
+        self.scan_insights_text = self._label(insight_card, "Run a scan to see security insights.",
+                                             10, INK, bg=CARD, justify="left", anchor="nw")
+        self.scan_insights_text.pack(fill="x", padx=14, pady=(0, 12))
+        self._refresh_analytics()
+
+    def _refresh_analytics(self, report=None):
+        try:
+            entries = json.loads(self.history_file.read_text(encoding="utf-8")) if self.history_file.exists() else []
+            if not isinstance(entries, list):
+                entries = []
+            lines = []
+            for item in reversed(entries[-3:]):
+                if not isinstance(item, dict):
+                    continue
+                name = Path(str(item.get("project", ""))).name or "Unknown project"
+                lines.append(f"{name[:28]}  |  {item.get('status', '?')}  |  {item.get('findings', '?')} findings")
+            self.recent_scans_text.configure(text="\\n".join(lines) if lines else "No completed scans yet.")
+        except (OSError, ValueError, TypeError):
+            self.recent_scans_text.configure(text="Scan history unavailable.")
+        if report is not None:
+            summary = report.get("summary", {})
+            cache = report.get("secret_cache") or {}
+            self.scan_insights_text.configure(
+                text=(f"Critical: {summary.get('critical', 0)}  |  Warnings: {summary.get('warnings', 0)}\\n"
+                      f"Secret files scanned: {cache.get('scanned', '—')}  |  Reused: {cache.get('reused', '—')}"))
 
     def _build_findings(self):
         self._label(self.workspace, "Security findings", 15, OLIVE_LIGHT, True).pack(
@@ -457,6 +499,7 @@ class Desktop:
                 self.detail.insert("end", "Select a finding to inspect its details.")
                 self.detail.configure(state="disabled")
                 self.save_history(value)
+                self._refresh_analytics(value)
                 elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
                 self.duration_value.configure(text=f"{elapsed:.1f}s", fg=OLIVE_MID)
                 status = value["status"]
@@ -561,6 +604,7 @@ class Desktop:
                 self.history_file.unlink()
             if window and window.winfo_exists():
                 window.destroy()
+            self._refresh_analytics()
             messagebox.showinfo("PipelineGuard", "Scan history cleared.")
         except Exception as exc:
             messagebox.showerror("PipelineGuard", f"Could not clear history: {exc}")
