@@ -380,3 +380,8 @@ Each run discovered 84 files, hashed 57; zero skipped_size, skipped_changed, or 
 ## New-chat handoff refreshed — 2026-10-08
 
 Updated `docs/NEW_CHAT_HANDOFF.md` in commit `0d82d89` with current v2 state, Windows test and benchmark results, code entry points, known limitations, immediate Git-context correctness testing milestone, validation commands, and a ready-to-paste new-chat opening prompt. This is documentation-only; no application logic changed. Future work should update both the handoff and this append-only journal as appropriate.
+
+
+## Git-context regression milestone — 2026-10-08 (awaiting Windows validation)
+
+Commit `27d86996d5ddcf9e1fab3779c150eb6e64240c91` added `tests/test_git_context_regression.py` on `feat/v2-engine-integration` only. Eight parametrized test cases exercise clean repositories, modified tracked files, untracked files, detached HEAD, non-Git directories, HTTPS credential/query/fragment redaction, SCP-style SSH remotes and ambiguous multi-segment remote paths. The tests use temporary Git repositories and do not alter application runtime code or stable v1.0.0. Existing Git-context tests were inspected before authoring. The first attempt to retrieve this journal through the generic GitHub fetch endpoint as JSON failed because the endpoint returned Markdown; recovery used the typed fetch_file action. **Validation status:** tests committed but not yet executed on Windows; do not count them as passing until user supplies actual pytest output. Run `python -m pytest -q tests/test_git_context_regression.py`, `python -m pytest -q`, and `python -m scripts.engine_timing`. Record failures and measurements after execution.
