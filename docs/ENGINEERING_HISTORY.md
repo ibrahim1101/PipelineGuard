@@ -708,3 +708,8 @@ After user confirmed the desktop syntax correction appeared and asked to continu
 ## Angular wordmark from user reference — 2026-10-09
 
 User supplied an image showing angular pixel/cyber-styled PipelineGuard lettering and requested it replace the plain top-left title without removing the cyber-cat branding. Commits `b309b0f` and `ac98ad5` implement a dependency-free Tk Canvas pixel wordmark in `pipelineguard/wordmark.py`, replacing plain title labels in the header and sidebar, with a small geometric cat-shield mark. This is an approximation of the visual style, not an exact licensed font or copied binary asset. Commit `16e3471` adds rendering assertions. **CI and user visual approval pending**; verify wordmark legibility at normal Windows scaling.
+
+
+## User-requested branding rollback — 2026-10-09
+
+User rejected the angular wordmark and altered shield logo as visually incorrect and explicitly requested a revert. Commit `61df471` restores the previously working Segoe UI PipelineGuard header, original `◈ PipelineGuard` sidebar label and 174px sidebar; removes the custom wordmark renderer import/use from the desktop. No scanning logic or SOC charts changed. `pipelineguard/wordmark.py` remains an unused historical file; do not reinstate this experimental branding without explicit user approval. The exact approved mockup cyber-cat logo was never implemented as an asset. Validation pending.
