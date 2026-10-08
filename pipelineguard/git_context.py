@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -62,9 +63,13 @@ def get_git_context(root: Path) -> dict[str, object]:
     commit = _git(root, "rev-parse", "HEAD")
     if not commit:
         return {"available": False}
-    branch = _git(root, "branch", "--show-current")
-    status = _git(root, "status", "--porcelain")
-    remote = _git(root, "config", "--get", "remote.origin.url")
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        branch_job = pool.submit(_git, root, "branch", "--show-current")
+        status_job = pool.submit(_git, root, "status", "--porcelain")
+        remote_job = pool.submit(_git, root, "config", "--get", "remote.origin.url")
+        branch = branch_job.result()
+        status = status_job.result()
+        remote = remote_job.result()
     return {
         "available": True,
         "commit": commit,
