@@ -94,3 +94,34 @@ def test_soc_analytics_empty_history(desktop, tmp_path):
     desktop._draw_charts()
     assert "No completed scans" in desktop.recent_scans_text.cget("text")
     assert desktop.trend_chart.find_all()
+
+
+def test_live_findings_are_drained_in_one_poll(desktop):
+    desktop.report = None
+    desktop.all_findings = []
+    for number in range(150):
+        desktop.events.put(("finding", {
+            "severity": "CRITICAL", "rule": "Synthetic finding",
+            "file": f"test_{number}.py", "line": 1,
+        }))
+    desktop.poll()
+    assert len(desktop.all_findings) == 150
+    assert len(desktop.tree.get_children()) == 150
+    assert desktop.findings_value.cget("text") == "150"
+    assert desktop.report is None
+
+
+def test_batch_final_report_replaces_live_findings(desktop):
+    desktop.events.put(("finding", {
+        "severity": "CRITICAL", "rule": "Preliminary", "file": "old.py", "line": 1,
+    }))
+    report = build_report([{
+        "severity": "CRITICAL", "rule": "Final", "file": "new.py", "line": 1,
+    }], [])
+    report["dependency_check_complete"] = True
+    desktop.events.put(("result", report))
+    desktop.poll()
+    assert desktop.report is report
+    assert len(desktop.all_findings) == 1
+    assert desktop.all_findings[0]["rule"] == "Final"
+    assert len(desktop.tree.get_children()) == 1
