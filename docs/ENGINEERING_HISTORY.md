@@ -738,3 +738,8 @@ Following user's 153 passed/2 skipped Windows pytest run and approval to proceed
 ## Windows Tcl string mismatch in new scroll/progress tests — 2026-10-09
 
 **User test result:** `python -m py_compile pipelineguard/desktop.py` succeeded; pytest returned **2 failed, 154 passed, 1 skipped** (Windows symlink permissions). Both failures occurred in new GUI tests (`test_scrollable_workspace_and_idle_progress` and `test_scan_error_resets_idle_progress`), where `ttk.Progressbar.cget('mode')` returned a Tkinter Tcl string object displaying `'determinate'` but not equal to Python's native string under direct comparison. **Root cause:** over-specific test assertions, not demonstrated application progress behavior failure. **Fix:** commit `e144969` uses `str(desktop.progress.cget('mode')) == 'determinate'` in both tests. No application/UI changes. **Rerun required** to verify the correction. Prevention: normalize Tcl-backed option values before asserting equality across Tk/Tcl versions.
+
+
+## Isolated v2 Windows portable packaging — 2026-10-09
+
+User confirmed dashboard mouse-wheel scrolling on Windows and authorized next milestone. Added `scripts/build-v2-windows.ps1` (Windows PyInstaller `--windowed --onedir` build from desktop launcher), `.github/workflows/v2-windows-portable.yml` (manually dispatched Windows test/build/artifact upload), and `docs/V2_WINDOWS_PACKAGING.md` (local build, CI, interactive acceptance checklist). Stable v1.0.0 release, installer, and main branch remain untouched. **Pending:** GitHub Actions run and user double-click/scan/export verification; no claims of successful packaged launch yet. The v2 installer is deliberately deferred until portable validation.
