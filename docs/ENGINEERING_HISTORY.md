@@ -650,3 +650,16 @@ git pull origin feat/v2-engine-integration
 python -m pytest -q tests/test_finding_callback.py tests/test_desktop_ui.py
 python -m pytest -q -rs
 ```
+
+
+## Desktop user acceptance feedback and small UI fixes — 2026-10-09
+
+User launched source desktop and scanned synthetic `sample_secrets.py`: UI showed BLOCKED, score 0/100, three critical Generic secret assignment findings, one file scanned, no reused cache entries, and matching HTML report. Selecting a finding exposed a formatting bug: details showed literal `\\n` text rather than line breaks. User also requested one-click × clearing for project folder and configuration path inputs. Commit `f8eea7b` fixes detail string newline escapes, adds clear controls to both path inputs, and resets the stale scanning placeholder after final results. **Post-change UI/CI validation pending.**
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_desktop_ui.py
+python -m pytest -q -rs
+python -m pipelineguard.desktop
+```
