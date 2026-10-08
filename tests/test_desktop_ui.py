@@ -125,3 +125,12 @@ def test_batch_final_report_replaces_live_findings(desktop):
     assert len(desktop.all_findings) == 1
     assert desktop.all_findings[0]["rule"] == "Final"
     assert len(desktop.tree.get_children()) == 1
+
+
+def test_pixel_cat_indicator_tracks_scan_state(desktop):
+    assert desktop.cat_canvas.find_all()
+    assert desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text") == "CAT ON DUTY"
+    desktop._render_pixel_cat(True)
+    assert "SCANNING" in desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text")
+    desktop._render_pixel_cat(False)
+    assert desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text") == "CAT ON DUTY"
