@@ -123,3 +123,38 @@ def test_cache_metrics_count_oversize_files(tmp_path, monkeypatch):
     assert counts["discovered"] == 1
     assert counts["skipped_size"] == 1
     assert counts["hashed"] == 0
+
+
+def test_tiny_files_are_scanned_without_cache(tmp_path, monkeypatch):
+    from pipelineguard import secret_cache
+    root, target = _setup(tmp_path, monkeypatch)
+    calls = []
+    original = secret_cache.scan_file
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    first = {}
+    second = {}
+    assert scan_secrets_incremental(root, set(), 100, metrics=first) == []
+    assert scan_secrets_incremental(root, set(), 100, metrics=second) == []
+    assert calls == [1, 1]
+    assert first["hashed"] == second["hashed"] == 0
+    assert first["scanned"] == second["scanned"] == 1
+    assert second["reused"] == 0
+
+
+def test_large_file_reuses_verified_cache(tmp_path, monkeypatch):
+    from pipelineguard import secret_cache
+    root, target = _setup(tmp_path, monkeypatch)
+    target.write_text("safe " * 300)
+    limit = 10000
+    first = {}
+    scan_secrets_incremental(root, set(), limit, metrics=first)
+    assert first["scanned"] == first["hashed"] == 1
+    def unexpected(*args, **kwargs):
+        raise AssertionError("large unchanged file should be reused")
+    monkeypatch.setattr(secret_cache, "scan_file", unexpected)
+    second = {}
+    assert scan_secrets_incremental(root, set(), limit, metrics=second) == []
+    assert second["reused"] == second["hashed"] == 1
