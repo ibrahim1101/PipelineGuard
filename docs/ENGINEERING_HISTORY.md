@@ -203,3 +203,13 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Change:** Added `tests/test_v2_telemetry_reports.py` at commit `9f7c0a70ba463905a0f5660e21255eea00f9d2f9`. It creates 40 tiny files to select the full strategy, checks unknown counters remain `None`, confirms `reused=0`, exports JSON/HTML/SARIF, verifies JSON round-trip retains null values, and verifies basic HTML/SARIF output contracts. Uses offline intelligence and isolated cache paths.
 
 **Verification status:** Test committed but **not executed locally** through the GitHub connector. No fresh pytest pass, CI pass, performance number, or packaging result is claimed. Check GitHub Actions and run `python -m pytest -rs -q` before marking verified. **Lesson:** Test the output boundary, not only engine internals, while distinguishing untested code from validated fixes. **Remaining:** CI verification, broader consumer audit, Windows manual GUI acceptance and large-repository profiling. Stable v1.0.0 untouched.
+
+## 13. Desktop configuration discoverability — 8 October 2026
+
+**User-reported usability gap:** The desktop displays “Configuration (Optional)” but provides no guidance on the file contents or supported keys. This prevented even the project owner from knowing how to use it.
+
+**Source audit:** Read `pipelineguard/config.py` and `pipelineguard/desktop.py` directly. Confirmed seven accepted JSON keys: `ignored_directories`, `max_file_size`, `fail_on_warning`, `allowlist`, `minimum_score`, `blocked_rules`, `block_advisory_severity`. Confirmed the desktop selects a JSON path explicitly, not automatically, and that allowlisting is rule/file/optional-line matching.
+
+**Changes:** Added `docs/CONFIGURATION.md` (commit `bbd16c94`), `examples/pipelineguard.example.json` (commit `3751f4c0`), and desktop '?' help dialog plus copyable sample (commit `b05a7f08`). Updated README with links and CLI usage. Default scanner behavior and stable v1.0.0 remain unchanged. The example uses an empty allowlist to avoid suppressing genuine findings.
+
+**Verification:** GitHub writes succeeded. No local Tk GUI execution, automated test run, Windows packaging, or fresh CI result has yet been observed for this change; mark it **implemented, pending validation**, not tested. **Lesson:** Exposing optional expert settings without discoverable documentation is a UX defect; ensure help text reflects the actual parser rather than the roadmap. **Next:** Run pytest, open the '?' window on Windows, verify copy-to-clipboard, select a valid sample, and confirm invalid JSON produces a clear error. Record pass/fail evidence.
