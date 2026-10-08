@@ -291,3 +291,7 @@ Implemented UTC `scanned_at` in engine reports and HTML profile/timestamp labels
 | Modified one file | 40 | 40 | 1 | 39 | 0/0/0 |
 
 **Outcome:** Content-verified cache reuse and single-file invalidation validated on Windows. All files are still hashed to establish trust; warm reuse avoids rerunning the secret analyzer, not disk I/O. The script reports counters but **does not measure wall-clock duration**, so no speedup claim is justified. Prior pytest checkpoint: 128 passed, 2 skipped in 18.79s (graphical display unavailable; Windows symlink permissions). Next: add timed measurements and test larger real-world-like workloads, without altering stable v1.0.0.
+
+## Timed cache benchmark instrumentation — 2026-10-08
+
+Updated `scripts/cache_benchmark.py` in commit `35c5cb5` to record elapsed milliseconds for cold, warm and single-file-modified scans using `time.perf_counter()`, and print the cold/warm duration ratio. Prior correctness results were validated on Windows (40/0, 0/40, 1/39 scanned/reused). **Timing results are pending user execution**; this small synthetic benchmark is illustrative and cannot alone establish representative real-world speedups. Next: run benchmark repeatedly on Windows, compare timings, and consider larger workloads if necessary.
