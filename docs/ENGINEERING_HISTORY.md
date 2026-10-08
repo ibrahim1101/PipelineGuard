@@ -221,3 +221,11 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Scope:** This validates the newly committed `tests/test_v2_telemetry_reports.py` alongside the existing suite **at the local checkout `b2d62c2`**, not the later configuration-help commits. The new desktop '?' help, README links and example JSON were committed subsequently and remain **pending local Windows GUI/pytest validation**.
 
 **Lesson:** Always capture the exact pulled commit and test totals. A passing suite on an older checkout must not be used as evidence that later UI changes work. Next step: pull latest branch, rerun tests, open desktop, inspect help and clipboard action, and select the example config. Stable v1.0.0 unchanged.
+
+## 15. Configuration-help Windows automated test checkpoint — 8 October 2026
+
+**User-supplied observed commands:** From `C:\Users\ibrah\PipelineGuard`, `git pull origin feat/v2-engine-integration` fast-forwarded local checkout from `b2d62c2` to `2a3d203`, bringing in `docs/CONFIGURATION.md`, `examples/pipelineguard.example.json`, the desktop '?' help and README updates. The user ran `python -m pytest -rs -q`.
+
+**Observed result:** **121 passed, 1 skipped in 18.57s**, no failures. Expected skip: `tests/test_traversal.py:24`, Windows symlink creation requires Developer Mode or elevated privileges. The user also entered `python -m pipelineguard.desktop`; no screenshot, GUI behavior, or subsequent outcome has been supplied yet.
+
+**Interpretation:** Automated regression suite passed on configuration-help code at `2a3d203`. **Manual GUI acceptance remains unverified:** '?' button visibility, dialog layout, copy-example clipboard, selecting sample JSON and scan behavior. Also, no dedicated automated Tk dialog test is claimed. **Lesson:** Distinguish process invocation and passing non-GUI tests from actual GUI usability verification. Stable v1.0.0 untouched.
