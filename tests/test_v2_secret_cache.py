@@ -199,3 +199,16 @@ def test_mixed_repository_parity(tmp_path, monkeypatch):
     expected = scan_directory(root, set(), 10000)
     assert scan_secrets_incremental(root, set(), 10000) == expected
     assert scan_secrets_incremental(root, set(), 10000) == expected
+
+
+def test_metrics_count_oversize_and_scanned_together(tmp_path, monkeypatch):
+    root, target = _setup(tmp_path, monkeypatch)
+    target.write_text("safe " * 300)
+    (root / "oversize.txt").write_text("X" * 12000)
+    counts = {}
+    scan_secrets_incremental(root, set(), 10000, metrics=counts)
+    assert counts["discovered"] == 2
+    assert counts["scanned"] == 1
+    assert counts["skipped_size"] == 1
+    assert counts["hashed"] == 1
+    assert counts["reused"] == 0
