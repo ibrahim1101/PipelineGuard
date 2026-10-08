@@ -668,3 +668,8 @@ python -m pipelineguard.desktop
 ## Desktop UI user acceptance confirmation — 2026-10-09
 
 Following the UI fix commit `f8eea7b` (details line breaks, × path clear controls, and reset of stale details placeholder), the user confirmed in chat: **“yoo it works”**. Record this as hands-on acceptance of the reported desktop UI fixes. The user did not provide fresh pytest output in this confirmation, so do not interpret it as an automated test pass or a full end-to-end certification. Next planned milestone: SOC-style desktop redesign and richer live scan activity indicators, while preserving the working Tk event queue and scanning behavior.
+
+
+## SOC redesign stage 1 — navigation shell (2026-10-09)
+
+Approved visual spec: `docs/SOC_DESIGN_SPEC.md`. Commit `94311bb` introduces an olive sidebar and wider workspace while retaining existing scan controls, findings, progress callbacks and report export. Navigation currently routes to existing functionality or explanatory dialogs; full distinct section views, charts, logo asset and pixel-cat loader remain future stages. **Automated CI and Windows hands-on testing are pending**. Suggested verification: `python -m pytest -q tests/test_desktop_ui.py` and `python -m pipelineguard.desktop`. Watch for Tk layout regressions, small-window clipping and sidebar readability.
