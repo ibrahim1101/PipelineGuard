@@ -137,7 +137,7 @@ class Desktop:
     def _navigate(self, destination):
         """Navigate to a working section without presenting nonfunctional pages."""
         if destination == "Scan Project":
-            self.scan_button.focus_set()
+            self.header_scan_button.focus_set()
         elif destination == "Findings":
             self.tree.focus_set()
         elif destination == "Reports":
@@ -235,54 +235,143 @@ class Desktop:
         ttk.Button(tools, text="Open reports", command=self.open_report_folder).pack(side="right", padx=(6, 0))
         ttk.Button(tools, text="Scan history", command=self.show_history).pack(side="right")
 
-    def _metric(self, parent, title, value="—", color=INK):
-        box = tk.Frame(parent, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-        box.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        tk.Label(box, text=title.upper(), bg=CARD, fg=MUTED,
-                 font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=16, pady=(12, 2))
-        label = tk.Label(box, text=value, bg=CARD, fg=color,
-                         font=("Segoe UI", 20, "bold"))
-        label.pack(anchor="w", padx=16, pady=(0, 12))
-        return label
+    def _soc_card(self, parent, title, column, weight=1):
+        """Reusable compact SOC card with the same spacing as the approved dashboard."""
+        parent.grid_columnconfigure(column, weight=weight, minsize=135)
+        card = tk.Frame(parent, bg=CARD, height=174, highlightbackground=BORDER,
+                        highlightthickness=1)
+        card.grid(row=0, column=column, sticky="nsew", padx=5)
+        card.pack_propagate(False)
+        self._label(card, title, 10, WHITE, True, bg=CARD).pack(
+            anchor="w", padx=12, pady=(10, 4))
+        return card
 
     def _build_dashboard(self):
-        row = tk.Frame(self.workspace, bg=CANVAS)
-        row.pack(fill="x", padx=24, pady=(0, 12))
-        self.score_value = self._metric(row, "Security Score", "—")
-        self.status_value = self._metric(row, "Scan Status", "READY", OLIVE_MID)
-        self.findings_value = self._metric(row, "Findings", "—")
-        self.critical_value = self._metric(row, "Critical", "—", BLOCKED)
-        self.warning_value = self._metric(row, "Warnings", "—", WARNING)
-        self.dependency_value = self._metric(row, "Dependency lookup", "—")
-        self.duration_value = self._metric(row, "Scan duration", "—")
+        """Reference-inspired six-card summary using real scan state only."""
+        row = tk.Frame(self.workspace, bg=CANVAS, height=184)
+        row.pack(fill="x", padx=12, pady=(2, 8))
+        row.pack_propagate(False)
+
+        score_card = self._soc_card(row, "Security Score", 0, 6)
+        self.score_gauge = tk.Canvas(score_card, bg=CARD, height=113,
+                                     highlightthickness=0)
+        self.score_gauge.pack(fill="both", expand=True, padx=8)
+        self.score_value = self._label(score_card, "— /100", 20, INK, True, bg=CARD)
+        self.score_value.place(relx=0.5, y=110, anchor="center")
+        self.score_gauge.bind("<Configure>", lambda _event: self._draw_score_gauge())
+
+        status_card = self._soc_card(row, "Scan Status", 1, 5)
+        self.status_value = self._label(status_card, "READY", 18, OLIVE_LIGHT, True, bg=CARD)
+        self.status_value.pack(anchor="w", padx=12, pady=(18, 6))
+        self._label(status_card, "Security assessment", 9, MUTED, bg=CARD).pack(
+            anchor="w", padx=12)
+        ttk.Button(status_card, text="View findings →",
+                   command=lambda: self._navigate("Findings")).pack(
+            anchor="w", padx=12, pady=(12, 0))
+
+        findings_card = self._soc_card(row, "Total Findings", 2, 5)
+        self.findings_value = self._label(findings_card, "—", 30, INK, True, bg=CARD)
+        self.findings_value.pack(anchor="w", padx=12, pady=(4, 1))
+        counts = tk.Frame(findings_card, bg=CARD)
+        counts.pack(anchor="w", padx=12)
+        self._label(counts, "Critical  ", 9, BLOCKED, bg=CARD).grid(row=0, column=0, sticky="w")
+        self.critical_value = self._label(counts, "—", 9, INK, True, bg=CARD)
+        self.critical_value.grid(row=0, column=1, sticky="w")
+        self._label(counts, "Warnings  ", 9, WARNING, bg=CARD).grid(row=1, column=0, sticky="w")
+        self.warning_value = self._label(counts, "—", 9, INK, True, bg=CARD)
+        self.warning_value.grid(row=1, column=1, sticky="w")
+
+        duration_card = self._soc_card(row, "Scan Duration", 3, 4)
+        self.duration_value = self._label(duration_card, "—", 25, INK, True, bg=CARD)
+        self.duration_value.pack(anchor="w", padx=12, pady=(24, 8))
+        self._label(duration_card, "Last completed scan", 9, MUTED, bg=CARD).pack(
+            anchor="w", padx=12)
+
+        issue_card = self._soc_card(row, "Top Issue Types", 4, 6)
+        self.issue_labels = []
+        for _ in range(5):
+            label = self._label(issue_card, "", 9, INK, bg=CARD, anchor="w")
+            label.pack(fill="x", padx=12, pady=(3, 1))
+            self.issue_labels.append(label)
+        self.issue_labels[0].configure(text="Run a scan to see issues", fg=MUTED)
+
+        history_card = self._soc_card(row, "Recent Scans", 5, 7)
+        self.recent_scans_text = self._label(
+            history_card, "No completed scans yet.", 9, INK,
+            bg=CARD, justify="left", anchor="nw")
+        self.recent_scans_text.pack(fill="x", padx=12, pady=(4, 4))
         self.status = tk.StringVar(value="Ready — choose a project folder to begin")
-        self.status_label = self._label(self.workspace, self.status.get(), 10, MUTED)
-        self.status_label.pack(anchor="w", padx=28, pady=(0, 6))
-        self.progress = ttk.Progressbar(self.workspace, mode="determinate", value=0, maximum=100,
+        self.status_label = self._label(self.workspace, self.status.get(), 9, MUTED)
+        self.status_label.pack(anchor="w", padx=18, pady=(0, 5))
+        self.progress = ttk.Progressbar(self.workspace, mode="determinate",
+                                        value=0, maximum=100,
                                         style="Horizontal.TProgressbar")
-        self.progress.pack(fill="x", padx=24, pady=(0, 4))
+        self.progress.pack(fill="x", padx=17, pady=(0, 4))
         self.cache_status = self._label(self.workspace, "Cache: —", 9, MUTED)
-        self.cache_status.pack(anchor="w", padx=28, pady=(0, 10))
+        self.cache_status.pack(anchor="w", padx=18, pady=(0, 8))
 
     def _build_analytics(self):
-        """Real scan-history summary, without fabricated trend data."""
-        panel = tk.Frame(self.workspace, bg=CANVAS)
-        panel.pack(fill="x", padx=24, pady=(0, 12))
-        history_card = tk.Frame(panel, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-        history_card.pack(side="left", fill="both", expand=True, padx=(0, 10))
-        self._label(history_card, "RECENT SCANS", 10, OLIVE_LIGHT, True, bg=CARD).pack(
-            anchor="w", padx=14, pady=(10, 4))
-        self.recent_scans_text = self._label(history_card, "No completed scans yet.", 10, INK,
-                                            bg=CARD, justify="left", anchor="nw")
-        self.recent_scans_text.pack(fill="x", padx=14, pady=(0, 12))
-        insight_card = tk.Frame(panel, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-        insight_card.pack(side="left", fill="both", expand=True)
-        self._label(insight_card, "SCAN INSIGHTS", 10, OLIVE_LIGHT, True, bg=CARD).pack(
-            anchor="w", padx=14, pady=(10, 4))
-        self.scan_insights_text = self._label(insight_card, "Run a scan to see security insights.",
-                                             10, INK, bg=CARD, justify="left", anchor="nw")
-        self.scan_insights_text.pack(fill="x", padx=14, pady=(0, 12))
+        """Four-card analytics row with no synthetic scan counts or events."""
+        row = tk.Frame(self.workspace, bg=CANVAS, height=196)
+        row.pack(fill="x", padx=12, pady=(0, 10))
+        row.pack_propagate(False)
+        for col, weight in enumerate((5, 6, 5, 5)):
+            row.grid_columnconfigure(col, weight=weight, minsize=190)
+
+        severity_card = self._soc_card(row, "Findings by Severity", 0, 5)
+        self.severity_chart = tk.Canvas(severity_card, bg=CARD, height=125,
+                                        highlightthickness=0)
+        self.severity_chart.pack(fill="both", expand=True, padx=9, pady=(0, 5))
+        self.severity_chart.bind("<Configure>", lambda _event: self._draw_charts())
+
+        trend_card = self._soc_card(row, "Findings Trend · Last 10 Scans", 1, 6)
+        self.trend_chart = tk.Canvas(trend_card, bg=CARD, height=125,
+                                     highlightthickness=0)
+        self.trend_chart.pack(fill="both", expand=True, padx=9, pady=(0, 5))
+        self.trend_chart.bind("<Configure>", lambda _event: self._draw_charts())
+
+        activity_card = self._soc_card(row, "Scan Activity", 2, 5)
+        self._activity_events = []
+        self.scan_activity_text = self._label(
+            activity_card, "No scan activity yet.", 9, MUTED,
+            bg=CARD, justify="left", anchor="nw")
+        self.scan_activity_text.pack(fill="x", padx=12, pady=(8, 0))
+
+        system_card = self._soc_card(row, "System Overview", 3, 5)
+        self._label(system_card, "Dependency lookup", 9, MUTED, bg=CARD).pack(
+            anchor="w", padx=12, pady=(7, 2))
+        self.dependency_value = self._label(system_card, "—", 10, INK, True, bg=CARD)
+        self.dependency_value.pack(anchor="w", padx=12)
+        self.scan_insights_text = self._label(
+            system_card, "Run a scan to see statistics.", 9, MUTED,
+            bg=CARD, justify="left", anchor="nw")
+        self.scan_insights_text.pack(fill="x", padx=12, pady=(8, 0))
         self._refresh_analytics()
+
+    def _record_activity(self, label):
+        """Only display events that were actually observed in this session."""
+        self._activity_events.append(
+            f"{datetime.now().strftime('%H:%M:%S')}  {label}")
+        self._activity_events = self._activity_events[-5:]
+        self.scan_activity_text.configure(
+            text="\n".join(self._activity_events), fg=INK)
+
+    def _refresh_issue_types(self, report):
+        counts = {}
+        if report is not None:
+            for item in report.get("findings", []):
+                rule = str(item.get("rule") or "Unclassified finding")
+                counts[rule] = counts.get(rule, 0) + 1
+        sorted_rules = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
+        for index, label in enumerate(self.issue_labels):
+            if index < len(sorted_rules):
+                rule, count = sorted_rules[index]
+                label.configure(text=f"{rule[:27]}  ·  {count}", fg=INK)
+            elif index == 0:
+                label.configure(text="No findings" if report is not None else
+                                "Run a scan to see issues", fg=SAFE if report is not None else MUTED)
+            else:
+                label.configure(text="")
 
     def _refresh_analytics(self, report=None):
         try:
@@ -290,45 +379,70 @@ class Desktop:
             if not isinstance(entries, list):
                 entries = []
             lines = []
-            for item in reversed(entries[-3:]):
+            for item in reversed(entries[-5:]):
                 if not isinstance(item, dict):
                     continue
                 name = Path(str(item.get("project", ""))).name or "Unknown project"
-                lines.append(f"{name[:28]}  |  {item.get('status', '?')}  |  {item.get('findings', '?')} findings")
-            self.recent_scans_text.configure(text="\n".join(lines) if lines else "No completed scans yet.")
+                lines.append(
+                    f"{name[:19]} · {item.get('status', '?')} · {item.get('findings', '?')} findings")
+            self.recent_scans_text.configure(
+                text="\n".join(lines) if lines else "No completed scans yet.")
         except (OSError, ValueError, TypeError):
             self.recent_scans_text.configure(text="Scan history unavailable.")
-        if hasattr(self, "trend_chart"):
-            self._draw_charts()
         if report is not None:
             summary = report.get("summary", {})
             cache = report.get("secret_cache") or {}
-            self.scan_insights_text.configure(
-                text=(f"Critical: {summary.get('critical', 0)}  |  Warnings: {summary.get('warnings', 0)}\n"
-                      f"Secret files scanned: {cache.get('scanned', '—')}  |  Reused: {cache.get('reused', '—')}"))
+            if cache:
+                self.scan_insights_text.configure(
+                    text=(f"Secret files scanned: {cache.get('scanned', '—')}\n"
+                          f"Reused: {cache.get('reused', '—')}\n"
+                          f"Critical: {summary.get('critical', 0)}"))
+            else:
+                self.scan_insights_text.configure(
+                    text=f"Critical: {summary.get('critical', 0)}\nCache metrics unavailable")
+        self._refresh_issue_types(report if report is not None else self.report)
+        if hasattr(self, "trend_chart"):
+            self._draw_charts()
 
     def _build_charts(self):
-        """Canvas charts based exclusively on persisted scans and actual findings."""
-        row = tk.Frame(self.workspace, bg=CANVAS)
-        row.pack(fill="x", padx=24, pady=(0, 10))
-        for title, name in (("FINDINGS TREND · LAST 10 SCANS", "trend_chart"),
-                            ("FINDINGS BY SEVERITY", "severity_chart")):
-            card = tk.Frame(row, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-            card.pack(side="left", fill="both", expand=True, padx=(0, 10))
-            self._label(card, title, 9, OLIVE_LIGHT, True, bg=CARD).pack(
-                anchor="w", padx=12, pady=(8, 2))
-            canvas = tk.Canvas(card, bg=CARD, height=95, highlightthickness=0)
-            canvas.pack(fill="x", padx=10, pady=(0, 6))
-            setattr(self, name, canvas)
-            canvas.bind("<Configure>", lambda _event: self._draw_charts())
+        """Analytics canvases are placed by _build_analytics in reference order."""
         self._draw_charts()
+
+    def _draw_score_gauge(self):
+        if not hasattr(self, "score_gauge"):
+            return
+        canvas = self.score_gauge
+        canvas.delete("all")
+        width = max(canvas.winfo_width(), 155)
+        radius = min((width - 24) / 2, 72)
+        cx = width / 2
+        bbox = (cx - radius, 10, cx + radius, 10 + radius * 2)
+        canvas.create_arc(*bbox, start=180, extent=-180, style="arc",
+                          width=15, outline=BORDER)
+        if self.report is None:
+            return
+        try:
+            score = max(0, min(100, float(self.report.get("score", 0))))
+        except (TypeError, ValueError):
+            return
+        risk = 100 - score
+        if risk:
+            canvas.create_arc(*bbox, start=180, extent=-180 * risk / 100,
+                              style="arc", width=15,
+                              outline=BLOCKED if score < 50 else WARNING)
+        if score:
+            canvas.create_arc(*bbox, start=180 - 180 * risk / 100,
+                              extent=-180 * score / 100,
+                              style="arc", width=15, outline=SAFE)
 
     def _draw_charts(self):
         if not hasattr(self, "trend_chart"):
             return
+        self._draw_score_gauge()
         trend = self.trend_chart
         trend.delete("all")
         width = max(trend.winfo_width(), 200)
+        height = max(trend.winfo_height(), 110)
         try:
             history = json.loads(self.history_file.read_text(encoding="utf-8")) if self.history_file.exists() else []
             values = [max(0, int(entry["findings"])) for entry in history[-10:]
@@ -336,43 +450,59 @@ class Desktop:
         except (OSError, ValueError, TypeError):
             values = []
         if not values:
-            trend.create_text(12, 44, anchor="w", text="No historical scan data yet", fill=MUTED)
+            trend.create_text(12, height / 2, anchor="w",
+                              text="No historical scan data yet", fill=MUTED)
         else:
             peak = max(max(values), 1)
             points = []
             for index, count in enumerate(values):
                 x = 20 + index * (width - 42) / max(len(values) - 1, 1)
-                y = 72 - (count / peak) * 52
+                y = height - 35 - (count / peak) * (height - 62)
                 points.extend((x, y))
-                trend.create_oval(x - 3, y - 3, x + 3, y + 3, fill=OLIVE, outline=OLIVE)
+                trend.create_oval(x - 3, y - 3, x + 3, y + 3, fill=BLOCKED, outline=BLOCKED)
             if len(points) >= 4:
-                trend.create_line(*points, fill=OLIVE_LIGHT, width=2)
-            trend.create_text(12, 84, anchor="w", text=f"{len(values)} scans  ·  latest: {values[-1]} findings",
+                trend.create_line(*points, fill=BLOCKED, width=2)
+            trend.create_text(12, height - 12, anchor="w",
+                              text=f"{len(values)} scans  ·  latest: {values[-1]} findings",
                               fill=MUTED, font=("Segoe UI", 9))
+
         severity = self.severity_chart
         severity.delete("all")
-        if self.report is None:
-            severity.create_text(12, 44, anchor="w", text="Scan a project to see severity distribution", fill=MUTED)
+        findings = (self.report.get("findings", []) if self.report is not None
+                    else self.all_findings)
+        if not findings:
+            severity.create_text(12, 48, anchor="w",
+                                 text="No findings yet" if self.report is None
+                                 else "No findings detected", fill=MUTED if self.report is None else SAFE)
             return
-        findings = self.report.get("findings", [])
         counts = {"CRITICAL": 0, "HIGH": 0, "WARNING": 0, "OTHER": 0}
         for item in findings:
             level = str(item.get("severity", "")).upper()
             counts[level if level in counts else "OTHER"] += 1
-        total = max(sum(counts.values()), 1)
-        colors = {"CRITICAL": BLOCKED, "HIGH": "#E28B59", "WARNING": WARNING, "OTHER": OLIVE}
-        x = 12
-        available = max(width - 28, 1)
+        total = sum(counts.values())
+        width = max(severity.winfo_width(), 200)
+        height = max(severity.winfo_height(), 110)
+        diameter = min(height - 18, width * 0.44, 120)
+        left, top = 12, max(4, (height - diameter) / 2)
+        bbox = (left, top, left + diameter, top + diameter)
+        start = 90
+        colors = {"CRITICAL": BLOCKED, "HIGH": "#E28B59",
+                  "WARNING": WARNING, "OTHER": SAFE}
         for level, count in counts.items():
-            if count:
-                segment = available * count / total
-                severity.create_rectangle(x, 14, x + segment, 32, fill=colors[level], outline="")
-                x += segment
-        severity.create_text(12, 57, anchor="w", fill=INK,
-                             text="  ·  ".join(f"{key.title()}: {value}" for key, value in counts.items() if value),
-                             font=("Segoe UI", 9))
-        if not findings:
-            severity.create_text(12, 57, anchor="w", text="No findings detected", fill=SAFE)
+            if not count:
+                continue
+            extent = -360 * count / total
+            severity.create_arc(*bbox, start=start, extent=extent, style="arc",
+                                width=18, outline=colors[level])
+            start += extent
+        severity.create_text(left + diameter / 2, top + diameter / 2,
+                             text=str(total), fill=WHITE,
+                             font=("Segoe UI", 20, "bold"))
+        x = left + diameter + 20
+        for index, (level, count) in enumerate(counts.items()):
+            severity.create_text(x, 20 + index * 24, anchor="w",
+                                 text=f"{level.title()}: {count}",
+                                 fill=colors[level], font=("Segoe UI", 9))
 
     def _build_pixel_cat(self):
         """Tiny coding-cat scan indicator; no external image assets."""
@@ -586,6 +716,10 @@ class Desktop:
         self.progress.configure(mode="indeterminate")
         self.progress.start(12)
         self._render_pixel_cat(True)
+        self._activity_events = []
+        self._record_activity("Scan started")
+        self._refresh_issue_types(None)
+        self._draw_charts()
 
         project_path = Path(self.folder.get())
         config_path = Path(self.config.get()) if self.config.get() else None
@@ -619,6 +753,8 @@ class Desktop:
             if value.stage.startswith("fingerprint") and value.discovered is not None:
                 stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
             self.status_label.configure(text=stage, fg=OLIVE_MID)
+            if not self._activity_events or not self._activity_events[-1].endswith(stage):
+                self._record_activity(stage)
             return False
         if kind == "finding":
             self.all_findings.append(value)
@@ -630,11 +766,13 @@ class Desktop:
         self.progress.configure(mode="determinate", value=0)
         self._render_pixel_cat(False)
         if kind == "error":
+            self._record_activity("Scan failed")
             self.status.set("Scan failed")
             self.status_label.configure(text=value, fg=BLOCKED)
             self.status_value.configure(text="ERROR", fg=BLOCKED)
             messagebox.showerror("Scan failed", value)
         else:
+            self._record_activity("Scan complete")
             self.report = value
             metrics = value.get("secret_cache")
             if metrics:
@@ -659,7 +797,7 @@ class Desktop:
                             f"Dependency lookup {'complete' if value['dependency_check_complete'] else 'incomplete'}")
             self.status_label.configure(text=self.status.get(), fg=color)
             self.status_value.configure(text=status, fg=color)
-            self.score_value.configure(text=f"{value['score']}/100", fg=color)
+            self.score_value.configure(text=f"{value['score']} /100", fg=color)
             self.findings_value.configure(text=str(len(value["findings"])), fg=color)
             self.critical_value.configure(text=str(value["summary"]["critical"]), fg=BLOCKED)
             self.warning_value.configure(text=str(value["summary"]["warnings"]), fg=WARNING)
