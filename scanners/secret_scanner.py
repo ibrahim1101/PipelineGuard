@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Callable
 from scanners.traversal import iter_files
 
 SKIP_DIRECTORIES = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"}
@@ -46,12 +47,16 @@ def scan_text(content: str, relative: str) -> list[dict[str, object]]:
                     "file": relative, "line": line_number})
     return findings
 
-def scan_directory(root: Path, ignored_directories: set[str] | None = None, max_file_size: int = MAX_FILE_SIZE) -> list[dict[str, object]]:
+def scan_directory(root: Path, ignored_directories: set[str] | None = None, max_file_size: int = MAX_FILE_SIZE, *, on_finding: Callable[[dict[str, object]], None] | None = None) -> list[dict[str, object]]:
     findings: list[dict[str, object]] = []
     root = root.resolve()
     for file_path in iter_files(root, SKIP_DIRECTORIES if ignored_directories is None else ignored_directories):
         try:
-            findings.extend(scan_file(file_path, root, max_file_size))
+            file_findings = scan_file(file_path, root, max_file_size)
+            findings.extend(file_findings)
+            if on_finding is not None:
+                for finding in file_findings:
+                    on_finding(dict(finding))
         except OSError:
             continue
     return findings
