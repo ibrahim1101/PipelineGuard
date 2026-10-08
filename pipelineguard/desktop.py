@@ -15,6 +15,7 @@ from pathlib import Path
 from pipelineguard.brand_asset import load_cat_logo
 from pipelineguard.engine import run_scan
 from pipelineguard.reporting import write_json_report, write_html_report, write_sarif_report
+from pipelineguard.soc_inspector import finding_group, safe_finding_details, masked_code_preview
 from pipelineguard.theme import (
     OLIVE, OLIVE_DARK, OLIVE_DEEP, OLIVE_MID, OLIVE_LIGHT, CANVAS,
     CARD, INK, MUTED, BORDER, SAFE, WARNING, BLOCKED, WHITE,
@@ -47,6 +48,11 @@ class Desktop:
         style.map("TButton", background=[("active", OLIVE_DARK), ("disabled", BORDER)])
         style.configure("Treeview", background=CARD, fieldbackground=CARD, foreground=INK,
                         rowheight=32, borderwidth=0, font=("Segoe UI", 10))
+        style.configure("TNotebook", background=CANVAS, borderwidth=0)
+        style.configure("TNotebook.Tab", background=OLIVE_DARK, foreground=INK,
+                        font=("Segoe UI", 10, "bold"), padding=(18, 9))
+        style.map("TNotebook.Tab", background=[("selected", OLIVE_MID)],
+                  foreground=[("selected", WHITE)])
         style.configure("Treeview.Heading", background=OLIVE_DARK, foreground=WHITE,
                         font=("Segoe UI", 10, "bold"), padding=8)
         style.map("Treeview", background=[("selected", OLIVE_DARK)], foreground=[("selected", WHITE)])
@@ -649,6 +655,16 @@ class Desktop:
         ttk.Combobox(search_bar, textvariable=self.severity_filter, state="readonly", width=18,
                      values=("All severities", "CRITICAL", "HIGH", "WARNING", "MEDIUM", "LOW", "INFO")).pack(side="left")
         ttk.Button(search_bar, text="Clear filters", command=self.clear_filters).pack(side="left", padx=(8, 0))
+        self.finding_tabs = ttk.Notebook(self.workspace)
+        self.finding_tabs.pack(fill="x", padx=24, pady=(0, 4))
+        for title in ("All Findings", "Secrets", "Dependencies"):
+            tab = tk.Frame(self.finding_tabs, bg=CARD, height=1)
+            self.finding_tabs.add(tab, text=title)
+        self.finding_tabs.bind("<<NotebookTabChanged>>",
+                               lambda _event: self.refresh_findings())
+        self.findings_count_label = self._label(
+            self.workspace, "0 visible · 0 total", 9, MUTED)
+        self.findings_count_label.pack(anchor="w", padx=28, pady=(0, 6))
         wrap = tk.Frame(self.workspace, bg=CANVAS)
         wrap.pack(fill="both", expand=True, padx=24, pady=(0, 18))
         table_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
@@ -677,8 +693,16 @@ class Desktop:
         self.detail = tk.Text(detail_card, width=38, height=12, wrap="word",
                               bg=CARD, fg=INK, relief="flat", borderwidth=0,
                               font=("Consolas", 9), padx=14, pady=8)
-        self.detail.pack(fill="both", expand=True)
-        ttk.Button(detail_card, text="Copy finding details", command=self.copy_details).pack(anchor="e", padx=14, pady=(0, 12))
+        self.detail.pack(fill="x", padx=4, pady=(0, 4))
+        self._label(detail_card, "MASKED SOURCE PREVIEW", 9, OLIVE_LIGHT, True,
+                    bg=CARD).pack(anchor="w", padx=14, pady=(4, 4))
+        self.preview = tk.Text(detail_card, width=38, height=6, wrap="word",
+                               bg=OLIVE_DEEP, fg=MUTED, relief="flat", borderwidth=0,
+                               font=("Consolas", 9), padx=12, pady=10)
+        self.preview.pack(fill="both", expand=True, padx=12, pady=(0, 8))
+        self.preview.insert("end", "Select a finding to see its masked location.")
+        self.preview.configure(state="disabled")
+        ttk.Button(detail_card, text="Copy safe details", command=self.copy_details).pack(anchor="e", padx=14, pady=(0, 12))
         self.detail.insert("end", "Select a finding to inspect its details.")
         self.detail.configure(state="disabled")
 
@@ -873,6 +897,10 @@ class Desktop:
             self.detail.delete("1.0", "end")
             self.detail.insert("end", "Select a finding to inspect its details.")
             self.detail.configure(state="disabled")
+            self.preview.configure(state="normal")
+            self.preview.delete("1.0", "end")
+            self.preview.insert("end", "Select a finding to see its masked location.")
+            self.preview.configure(state="disabled")
             self.save_history(value)
             self._refresh_analytics(value)
             elapsed = time.perf_counter() - (self.scan_started or time.perf_counter())
@@ -926,38 +954,47 @@ class Desktop:
         if not hasattr(self, "tree"):
             return
         query = self.search.get().strip().lower() if hasattr(self, "search") else ""
+        severity = self.severity_filter.get() if hasattr(self, "severity_filter") else "All severities"
+        category = ("All Findings" if not hasattr(self, "finding_tabs") else
+                    self.finding_tabs.tab(self.finding_tabs.select(), "text"))
         self.tree.delete(*self.tree.get_children())
+        visible = 0
         for index, item in enumerate(self.all_findings):
-            haystack = " ".join(str(item.get(key, "")) for key in ("severity", "rule", "file", "package", "summary")).lower()
-            selected_severity = self.severity_filter.get() if hasattr(self, "severity_filter") else "All severities"
+            if category != "All Findings" and finding_group(item) != category:
+                continue
+            haystack = " ".join(str(item.get(key, "")) for key in
+                               ("severity", "rule", "file", "package", "summary")).lower()
             if query and query not in haystack:
                 continue
-            if selected_severity != "All severities" and str(item.get("severity", "")).upper() != selected_severity:
+            if severity != "All severities" and str(item.get("severity", "")).upper() != severity:
                 continue
             self.tree.insert("", "end", iid=str(index), values=(
                 item.get("severity", ""), item.get("rule", ""),
-                item.get("file", item.get("package", "dependencies")),),
+                item.get("file", item.get("package", "dependencies"))),
                 tags=(str(item.get("severity", "info")).lower(),))
+            visible += 1
+        if hasattr(self, "findings_count_label"):
+            self.findings_count_label.configure(
+                text=f"{visible} visible · {len(self.all_findings)} total")
+
 
     def details(self, event=None):
         selected = self.tree.selection()
-        if selected:
-            self.detail.configure(state="normal")
-            self.detail.delete("1.0", "end")
-            index = int(selected[0])
-            if index >= len(self.all_findings):
-                return
-            finding = self.all_findings[index]
-            readable = (
-                f"Severity: {finding.get('severity', 'UNKNOWN')}\n"
-                f"Rule: {finding.get('rule', 'Security finding')}\n"
-                f"Location: {finding.get('file', finding.get('package', 'N/A'))}\n\n"
-                f"Summary\n{finding.get('summary', 'No summary available.')}\n\n"
-                f"Remediation\n{finding.get('remediation', 'Review this finding and remove or secure the affected value.')}\n\n"
-                f"Technical details\n{json.dumps(finding, indent=2)}"
-            )
-            self.detail.insert("end", readable)
-            self.detail.configure(state="disabled")
+        if not selected:
+            return
+        index = int(selected[0])
+        if index >= len(self.all_findings):
+            return
+        finding = self.all_findings[index]
+        for widget, content in (
+            (self.detail, safe_finding_details(finding)),
+            (self.preview, masked_code_preview(finding)),
+        ):
+            widget.configure(state="normal")
+            widget.delete("1.0", "end")
+            widget.insert("end", content)
+            widget.configure(state="disabled")
+
 
     def save_history(self, report):
         try:
@@ -1025,14 +1062,18 @@ class Desktop:
 
     def copy_details(self):
         selected = self.tree.selection()
-        if not selected or not self.report:
+        if not selected:
             messagebox.showinfo("PipelineGuard", "Select a finding first.")
             return
-        details = json.dumps(self.report["findings"][int(selected[0])], indent=2)
+        index = int(selected[0])
+        if index >= len(self.all_findings):
+            return
+        details = safe_finding_details(self.all_findings[index])
         self.root.clipboard_clear()
         self.root.clipboard_append(details)
         self.root.update()
-        messagebox.showinfo("PipelineGuard", "Finding details copied to the clipboard.")
+        messagebox.showinfo("PipelineGuard", "Safe finding metadata copied.")
+
 
     def export(self):
         if self.report is None:
