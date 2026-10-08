@@ -6,6 +6,8 @@ Creates only synthetic, non-sensitive data in a temporary directory.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import os
 import statistics
 import tempfile
 import time
@@ -50,6 +52,10 @@ def main() -> None:
                     f"# synthetic source {index}\n" + "message = 'hello world'\n" * (args.lines - 1),
                     encoding="utf-8",
                 )
+        cache_home = Path(folder) / "cache"
+        os.environ["LOCALAPPDATA"] = str(cache_home)
+        os.environ["XDG_CACHE_HOME"] = str(cache_home)
+        cache_file = cache_home / "PipelineGuard" / "secret-findings" / (hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json")
         ignored: set[str] = set()
         limit = 1_000_000
         fresh = lambda: scan_directory(root, ignored, limit)
@@ -64,12 +70,28 @@ def main() -> None:
         cold_median, _ = measure(fresh, args.rounds)
         warm_median, _ = measure(incremental, args.rounds)
         adaptive_median, _ = measure(adaptive, args.rounds)
+        def cold_incremental():
+            cache_file.unlink(missing_ok=True)
+            return incremental()
+        cold_cache_median, _ = measure(cold_incremental, args.rounds)
+        incremental()
+        changed = root / "file-000000.py"
+        def modified_incremental():
+            content = changed.read_text(encoding="utf-8")
+            content = content.replace("hello world", "hello there") if "hello world" in content else content.replace("hello there", "hello world")
+            changed.write_text(content, encoding="utf-8")
+            return incremental()
+        modified_median, _ = measure(modified_incremental, args.rounds)
+        if fresh() != incremental():
+            raise AssertionError("Modified-file findings differ from full scan")
         print(f"Files: {args.files}; lines/file: {args.lines}; rounds: {args.rounds}")
         print(f"Adaptive strategy: {strategy}")
         print(f"Fresh full-scan median: {cold_median:.4f}s")
         print(f"Warm cache median:      {warm_median:.4f}s")
         print(f"Speed ratio (fresh/warm): {cold_median / warm_median:.2f}x" if warm_median else "Warm scan too fast to measure")
         print(f"Adaptive median:       {adaptive_median:.4f}s")
+        print(f"Cold cache median:     {cold_cache_median:.4f}s")
+        print(f"Modified cache median: {modified_median:.4f}s")
         print(f"Adaptive ratio:        {cold_median / adaptive_median:.2f}x" if adaptive_median else "Adaptive too fast to measure")
         print("Parity: PASS")
 
