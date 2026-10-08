@@ -630,3 +630,8 @@ python -m scripts.engine_timing --runs 10 --summary
 ```
 
 Remaining: validate Windows results, ensure callback exceptions and cached findings have robust tests, and implement a thread-safe SOC desktop event queue. Offline benchmark excludes OSV network time.
+
+
+## Ubuntu CI regression and correction — 2026-10-09
+
+GitHub Actions security gate run [37832891115](https://github.com/ibrahim1101/PipelineGuard/actions/runs/37832891115) failed in the `Run tests` step: **2 failed, 140 passed, 4 skipped**. The failed tests were `test_finding_callback_matches_report` and `test_streamed_secret_precedes_report_build`. The corresponding Windows desktop validation run **37832891065 succeeded**. Root cause: in `pipelineguard/engine.py`, the no-profile (`else`) scanner call did not forward `on_finding` to `scan_directory`; the secret findings were present in the final report but never delivered as events. This defect was exposed by the Linux CI tests; it was not a platform-specific scanner issue. Commit `5af9d15` fixes the no-profile branch to forward the filtered callback, aligning it with full-profile and incremental branches. **Post-fix CI validation is pending**; do not mark the correction verified until tests finish.
