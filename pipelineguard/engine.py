@@ -75,13 +75,12 @@ def run_scan(
     if progress:
         progress(ProgressEvent("secrets"))
     use_secret_cache = selected is not None and selected.name.lower() in {"quick", "standard", "deep"}
-    secret_metrics: dict[str, int] | None = {} if use_secret_cache else None
+    secret_metrics: dict[str, int | str | None] | None = {} if use_secret_cache else None
     if use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
         secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
-        # Full scans do not reuse findings; preserve the telemetry contract.
-        # A full scan does not expose per-file counters. Avoid reporting guessed counts.
-        secret_metrics.update({"strategy": "full", "discovered": 0, "hashed": 0, "scanned": 0,
-                               "reused": 0, "skipped_size": 0, "skipped_changed": 0, "skipped_error": 0})
+        # Full scans do not expose per-file counters; mark them unavailable.
+        secret_metrics.update({"strategy": "full", "discovered": None, "hashed": None, "scanned": None,
+                               "reused": 0, "skipped_size": None, "skipped_changed": None, "skipped_error": None})
     elif use_secret_cache:
         secrets = scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
                                            metrics=secret_metrics)
@@ -91,7 +90,7 @@ def run_scan(
     if progress and secret_metrics is not None:
         progress(ProgressEvent("secrets-complete",
                                discovered=secret_metrics["discovered"],
-                               processed=secret_metrics["scanned"] + secret_metrics["reused"],
+                               processed=(secret_metrics["scanned"] or 0) + secret_metrics["reused"],
                                cached=secret_metrics["reused"]))
     report = build_report(
         apply_allowlist(secrets, settings.allowlist),
