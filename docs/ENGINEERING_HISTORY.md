@@ -534,3 +534,19 @@ python -m scripts.engine_timing --runs 10 --summary
 **Offline Standard-profile ten-run medians (ms):** setup 29.77, dependencies 7.54, secrets 34.25, Git context 60.88 (range 58.46–74.55), total 133.25 (range 125.53–162.56). Prior separate ten-run baseline Git context 68.70 and total 139.96 ms; observed median differences −7.82 ms (−11.4%) and −6.71 ms (−4.8%), respectively. Different-run system conditions mean this is suggestive, not controlled proof of speedup. All scans returned policy status `BLOCKED`, with no reported execution errors. Secret cache discovered 86, hashed 59, warm runs scanned 27 and reused 59; no skipped/error counters. Offline timing excludes OSV network latency.
 
 The three-subprocess optimization and added regression tests are now Windows validated. Continue v2.0 expanded scope (streaming findings, advanced analyzer caching, reachability, SOC desktop) with test evidence and commands for each milestone.
+
+
+## v2.0 finding callback foundation — 2026-10-09
+
+Implementation commit `9bc3b0fc8c78d0e2db36d0a67e4de889b57d72d7` adds optional `on_finding` to shared `run_scan`. Events are copies of allowlist-filtered analyzer findings, emitted after analyzer completion and before report construction. Existing callers need no changes; callback exceptions currently propagate. **This is not yet true in-scan streaming**; integration with analyzer iteration and desktop remains open. Test commit `82722c6490cf27201bda46c3022909e31229fce2` adds smoke and compatibility coverage. No Windows validation claimed yet.
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_finding_callback.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Record any failures, fixes, and actual results before continuing to real-time analyzer streaming.
