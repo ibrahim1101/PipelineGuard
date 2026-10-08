@@ -319,6 +319,8 @@ class Desktop:
         self.scan_started = time.perf_counter()
         self.report = None
         self.tree.delete(*self.tree.get_children())
+        self.all_findings = []
+        self.findings_value.configure(text="0", fg=OLIVE_MID)
         self.status.set("Scanning project…")
         self.status_label.configure(text=self.status.get(), fg=OLIVE_MID)
         self.status_value.configure(text="SCANNING", fg=OLIVE_MID)
@@ -329,12 +331,17 @@ class Desktop:
         self.cache_status.configure(text="Cache: scanning…")
         self.progress.start(12)
 
+        project_path = Path(self.folder.get())
+        config_path = Path(self.config.get()) if self.config.get() else None
+        online_enabled = self.online.get()
+        selected_profile = self.scan_profile.get().lower()
+
         def worker():
             try:
-                config = Path(self.config.get()) if self.config.get() else None
-                result = run_scan(Path(self.folder.get()), config, self.online.get(),
-                                  profile=self.scan_profile.get().lower(),
-                                  progress=lambda event: self.events.put(("progress", event)))
+                result = run_scan(project_path, config_path, online_enabled,
+                                  profile=selected_profile,
+                                  progress=lambda event: self.events.put(("progress", event)),
+                                  on_finding=lambda finding: self.events.put(("finding", finding)))
                 self.events.put(("result", result))
             except Exception as exc:
                 self.events.put(("error", str(exc)))
@@ -358,6 +365,12 @@ class Desktop:
                 if value.stage.startswith("fingerprint") and value.discovered is not None:
                     stage += f" · {value.processed or 0}/{value.discovered} files · {value.cached} cached"
                 self.status_label.configure(text=stage, fg=OLIVE_MID)
+                self.root.after(100, self.poll)
+                return
+            if kind == "finding":
+                self.all_findings.append(value)
+                self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
+                self.refresh_findings()
                 self.root.after(100, self.poll)
                 return
             self.scan_button.state(["!disabled"])
@@ -422,10 +435,13 @@ class Desktop:
 
     def details(self, event=None):
         selected = self.tree.selection()
-        if selected and self.report:
+        if selected:
             self.detail.configure(state="normal")
             self.detail.delete("1.0", "end")
-            finding = self.report["findings"][int(selected[0])]
+            index = int(selected[0])
+            if index >= len(self.all_findings):
+                return
+            finding = self.all_findings[index]
             readable = (
                 f"Severity: {finding.get('severity', 'UNKNOWN')}\\n"
                 f"Rule: {finding.get('rule', 'Security finding')}\\n"
