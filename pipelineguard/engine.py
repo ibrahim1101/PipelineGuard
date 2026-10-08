@@ -110,10 +110,13 @@ def run_scan(
     if timings is not None:
         timings["secrets_ms"] = (perf_counter() - stage_started) * 1000
     stage_started = perf_counter()
+    report_build_started = perf_counter()
     report = build_report(
         apply_allowlist(secrets, settings.allowlist),
         apply_allowlist(records + vulnerabilities, settings.allowlist),
     )
+    if timings is not None:
+        timings["report_build_ms"] = (perf_counter() - report_build_started) * 1000
     report["scanned_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if secret_metrics is not None:
         report["secret_cache"] = secret_metrics
@@ -124,7 +127,10 @@ def run_scan(
     if selected is not None:
         report["scan_profile"] = selected.name
         if selected.git_context:
+            git_started = perf_counter()
             report["git_context"] = get_git_context(path.resolve())
+            if timings is not None:
+                timings["git_context_ms"] = (perf_counter() - git_started) * 1000
     if baseline_path is not None:
         previous = read_baseline(baseline_path)
         comparison = compare_baseline(report["findings"], previous)
@@ -135,6 +141,7 @@ def run_scan(
             write_baseline(baseline_path, report["findings"])
     if timings is not None:
         timings["report_ms"] = (perf_counter() - stage_started) * 1000
+        timings["report_other_ms"] = max(0.0, timings["report_ms"] - timings.get("report_build_ms", 0.0) - timings.get("git_context_ms", 0.0))
         timings["total_ms"] = (perf_counter() - scan_started) * 1000
     if progress:
         progress(ProgressEvent("complete"))
