@@ -3,10 +3,26 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 from pathlib import Path
 from scanners.secret_scanner import RULES, scan_file
 from scanners.traversal import iter_files
+
+
+
+def _safe_cached_findings(value: object, relative: str) -> bool:
+    """Reject malformed/tampered cache entries; do not trust external JSON."""
+    if not isinstance(value, list):
+        return False
+    return all(
+        isinstance(item, dict)
+        and set(item) == {"severity", "rule", "confidence", "file", "line"}
+        and item["severity"] == "CRITICAL"
+        and item["rule"] in {name for name, _ in RULES}
+        and item["confidence"] in {"high", "medium"}
+        and item["file"] == relative
+        and type(item["line"]) is int and item["line"] > 0
+        for item in value
+    )
 
 def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file_size: int) -> list[dict[str, object]]:
     root = root.resolve()
@@ -38,10 +54,7 @@ def scan_secrets_incremental(root: Path, ignored_directories: set[str], max_file
             fingerprint = digest.hexdigest()
             prior = previous.get(relative)
             if (isinstance(prior, dict) and prior.get("sha256") == fingerprint and
-                isinstance(prior.get("findings"), list) and
-                all(isinstance(x, dict) and set(x) == {"severity", "rule", "confidence", "file", "line"}
-                    and x.get("file") == relative and isinstance(x.get("line"), int)
-                    for x in prior["findings"])):
+                _safe_cached_findings(prior.get("findings"), relative)):
                 findings = prior["findings"]
             else:
                 findings = scan_file(file_path, root, max_file_size)
