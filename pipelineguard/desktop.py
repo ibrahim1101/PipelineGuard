@@ -59,8 +59,8 @@ class Desktop:
         self.brand_font = "Bahnschrift" if "Bahnschrift" in tkinter.font.families(root) else "Segoe UI"
         self.cat_logo = load_cat_logo(root)
         self._build_shell()
-        self._build_header()
         self._build_controls()
+        self._build_header()
         self._build_dashboard()
         self._build_analytics()
         self._build_charts()
@@ -156,24 +156,37 @@ class Desktop:
                         font=("Segoe UI", size, "bold" if bold else "normal"), **kwargs)
 
     def _build_header(self):
-        header = tk.Frame(self.root, bg=OLIVE_DEEP, height=100)
+        """Reference-inspired compact command bar; keep approved cat branding."""
+        header = tk.Frame(self.root, bg=OLIVE_DEEP, height=78)
         header.pack(side="top", fill="x", before=self.content_frame)
         header.pack_propagate(False)
         brand_row = tk.Frame(header, bg=OLIVE_DEEP)
-        brand_row.pack(anchor="w", padx=14, pady=(10, 0))
+        brand_row.pack(side="left", padx=(14, 24), pady=9)
         tk.Label(brand_row, image=self.cat_logo, bg=OLIVE_DEEP, borderwidth=0).pack(side="left")
         brand_title = tk.Frame(brand_row, bg=OLIVE_DEEP)
         brand_title.pack(side="left", padx=(9, 0))
         title_line = tk.Frame(brand_title, bg=OLIVE_DEEP)
         title_line.pack(anchor="w")
         tk.Label(title_line, text="Pipeline", bg=OLIVE_DEEP, fg=WHITE,
-                 font=(self.brand_font, 25, "bold")).pack(side="left")
+                 font=(self.brand_font, 22, "bold")).pack(side="left")
         tk.Label(title_line, text="Guard", bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
-                 font=(self.brand_font, 25, "bold")).pack(side="left")
+                 font=(self.brand_font, 22, "bold")).pack(side="left")
         tk.Label(brand_title, text="Secure every build before it reaches production.",
                  bg=OLIVE_DEEP, fg=OLIVE_LIGHT,
-                 font=("Segoe UI", 10)).pack(anchor="w")
-        ttk.Button(header, text="About", command=self.show_about).place(relx=1.0, x=-28, y=32, anchor="e")
+                 font=("Segoe UI", 9)).pack(anchor="w")
+        toolbar = tk.Frame(header, bg=OLIVE_DEEP)
+        toolbar.pack(side="right", fill="y", padx=14, pady=17)
+        self.header_scan_button = ttk.Button(toolbar, text="▶  Start Scan", command=self.scan)
+        self.header_scan_button.pack(side="right", padx=(8, 0))
+        ttk.Button(toolbar, text="⚙", width=3, command=self.show_config_help).pack(side="right", padx=(8, 0))
+        self.header_profile = ttk.Combobox(toolbar, textvariable=self.scan_profile,
+                                            state="readonly", width=12,
+                                            values=("Quick", "Standard", "Deep", "Release", "Forensic"))
+        self.header_profile.pack(side="right", padx=(6, 0))
+        tk.Label(toolbar, text="Scan profile:", bg=OLIVE_DEEP, fg=INK,
+                 font=("Segoe UI", 9)).pack(side="right")
+        ttk.Button(toolbar, text="📁", width=3, command=self.choose).pack(side="right", padx=(6, 12))
+        ttk.Entry(toolbar, textvariable=self.folder, width=36).pack(side="right")
 
     def show_about(self):
         window = tk.Toplevel(self.root)
@@ -260,8 +273,8 @@ class Desktop:
     def _build_dashboard(self):
         row = tk.Frame(self.workspace, bg=CANVAS)
         row.pack(fill="x", padx=24, pady=(0, 12))
-        self.status_value = self._metric(row, "Status", "READY", OLIVE_MID)
-        self.score_value = self._metric(row, "Security score", "—")
+        self.score_value = self._metric(row, "Security Score", "—")
+        self.status_value = self._metric(row, "Scan Status", "READY", OLIVE_MID)
         self.findings_value = self._metric(row, "Findings", "—")
         self.critical_value = self._metric(row, "Critical", "—", BLOCKED)
         self.warning_value = self._metric(row, "Warnings", "—", WARNING)
@@ -576,6 +589,7 @@ class Desktop:
             messagebox.showerror("PipelineGuard", "Choose an existing project folder.")
             return
         self.scan_button.state(["disabled"])
+        self.header_scan_button.state(["disabled"])
         try:
             self.preferences_file.parent.mkdir(parents=True, exist_ok=True)
             self.preferences_file.write_text(json.dumps({"last_project": self.folder.get(), "last_config": self.config.get()}), encoding="utf-8")
@@ -636,6 +650,7 @@ class Desktop:
             self.findings_value.configure(text=str(len(self.all_findings)), fg=OLIVE_MID)
             return True
         self.scan_button.state(["!disabled"])
+        self.header_scan_button.state(["!disabled"])
         self.progress.stop()
         self.progress.configure(mode="determinate", value=0)
         self._render_pixel_cat(False)
