@@ -1,3 +1,5 @@
+import pytest
+
 from scanners.traversal import iter_files
 from scanners.secret_scanner import scan_directory
 from scanners.dependency_scanner import scan_dependencies
@@ -15,7 +17,12 @@ def test_custom_exclusions_apply_to_both_scanners(tmp_path):
 def test_symlinked_files_are_skipped(tmp_path):
     source = tmp_path / "source"
     source.write_text("hello")
-    (tmp_path / "link").symlink_to(source)
+    try:
+        (tmp_path / "link").symlink_to(source)
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 1314:
+            pytest.skip("Windows symlink creation requires Developer Mode or elevated privileges")
+        raise
     assert list(iter_files(tmp_path)) == [source]
 
 
