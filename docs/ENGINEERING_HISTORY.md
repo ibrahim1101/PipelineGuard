@@ -723,3 +723,8 @@ User supplied the exact approved mockup header screenshot, asked to retain its c
 ## Global top-left branding placement — 2026-10-09
 
 User showed that the single approved cyber-cat logo/title still appeared offset right, inside the workspace, and requested the originally agreed top-left placement. Commit `144e7f3` restructures Tk layout: a full-width header is packed into the root before a new content frame, with sidebar and workspace beneath it. The approved logo asset, Bahnschrift title, colors and tagline remain unchanged. Commit `0d663f1` adds a desktop Tk layout regression test. **Visual QA and CI pending.**
+
+
+## Post-branding dashboard readability regression — 2026-10-09
+
+User visually approved the full-width top-left cyber-cat header. The next development pass preserves that design and addresses the screenshot-observed Recent Scans card displaying literal `\\n` separators. Commit `fb0bcdf` replaces double-escaped newline sequences in `pipelineguard/desktop.py` with Python newline escape sequences, also correcting the insights and About text. Commit `6fc7cf2` adds a desktop UI regression test for multi-line scan history. **Automated tests and Windows rendering not yet verified**; run `python -m pytest -q -rs` and launch desktop after pulling.
