@@ -396,3 +396,10 @@ Offline Standard-profile engine timing results (milliseconds): run 1 setup 35.91
 Compared with earlier three-run totals (147.23, 133.60, 129.20 ms), these new totals are higher; the working tree changed and these are not controlled paired measurements, so no performance gain is claimed. Next: gather 10-run timing data, inspect the single pytest skip using `python -m pytest -q -rs`, and investigate setup and secret scanning without compromising detection coverage.
 
 Documentation failure and recovery: first attempt to record this milestone was blocked by a safety check before a GitHub commit was confirmed. This entry is the retry; the preceding failure is retained as part of the engineering record.
+
+
+## Ten-run Windows performance validation — 2026-10-08
+
+The user pulled commit `7bde773` and ran `python -m scripts.engine_timing --runs 10 --summary` successfully. All ten offline Standard-profile scans returned policy status `BLOCKED` without execution errors. Median stage times in milliseconds: setup 28.19 (range 27.22–29.95), dependencies 7.21 (6.99–7.58), secrets 31.52 (28.41–36.57), Git context 61.87 (60.97–66.35), total 128.78 (126.67–138.14). OSV network latency was excluded. Git context is the largest measured stage; further changes need controlled A/B testing and preserved redaction and dirty-state correctness. Secret-cache counts: 85 discovered and 58 hashed on every run; run 1 scanned/reused 29/56, runs 2–10 27/58; no skipped-size/changed/error files.
+
+`python -m pytest -q -rs` returned **136 passed, 2 skipped, 0 failed in 20.03s**. The skips were `tests/test_desktop_ui.py:42` (graphical display unavailable) and `tests/test_traversal.py:24` (Windows symlink creation requires Developer Mode or elevated privileges). The earlier 137 passed/1 skipped result differed by one environment-dependent skip, not by any reported failure. Benchmark summary feature is now validated on Windows. No runtime optimization or speedup is claimed by this documentation milestone.
