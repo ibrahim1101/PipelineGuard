@@ -295,3 +295,7 @@ Implemented UTC `scanned_at` in engine reports and HTML profile/timestamp labels
 ## Timed cache benchmark instrumentation — 2026-10-08
 
 Updated `scripts/cache_benchmark.py` in commit `35c5cb5` to record elapsed milliseconds for cold, warm and single-file-modified scans using `time.perf_counter()`, and print the cold/warm duration ratio. Prior correctness results were validated on Windows (40/0, 0/40, 1/39 scanned/reused). **Timing results are pending user execution**; this small synthetic benchmark is illustrative and cannot alone establish representative real-world speedups. Next: run benchmark repeatedly on Windows, compare timings, and consider larger workloads if necessary.
+
+## First timed cache benchmark — Windows, 2026-10-08
+
+User pulled v2 through `5d79af6` and executed `python -m scripts.cache_benchmark` on Windows PowerShell. **Observed single-run synthetic timings:** cold **31.14 ms** (40 scanned, 0 reused), warm **10.68 ms** (0 scanned, 40 reused), modified **12.77 ms** (1 scanned, 39 reused). Every phase hashed all 40 files; all skip/error counters were zero. Printed cold/warm ratio: **2.92x**. This is a single, 40-file synthetic benchmark, not a reproducible or representative speedup claim. Repeat runs and larger workloads are needed before any optimization conclusion. The baseline remains v2 development only; stable v1.0.0 unchanged.
