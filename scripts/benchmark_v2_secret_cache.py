@@ -11,6 +11,10 @@ import tempfile
 import time
 from pathlib import Path
 
+# Support direct execution from a repository checkout without installation.
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from pipelineguard.secret_cache import scan_secrets_incremental
 from scanners.secret_scanner import scan_directory
 
