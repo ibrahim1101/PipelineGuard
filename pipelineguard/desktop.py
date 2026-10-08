@@ -582,7 +582,8 @@ class Desktop:
                 fg=SAFE if value["dependency_check_complete"] else WARNING)
             self.refresh_findings()
             self._draw_charts()
-    return False
+        return False
+
     def poll(self):
         """Drain bounded batches so busy scans do not backlog the Tk event loop."""
         pending_findings = False
