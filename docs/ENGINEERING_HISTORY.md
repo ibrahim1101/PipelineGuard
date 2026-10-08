@@ -360,3 +360,7 @@ User pulled through commit `51c8f99`, ran `python -m scripts.engine_timing` (off
 | 3 | 28.34 | 7.50 | 28.24 | 0.01 | 123.04 | 123.08 | 0.02 | 187.17 |
 
 Offline OSV reported 0.00 ms. Cache: 84 discovered, 57 hashed each run; scanned/reused 29/55 then 27/57 and 27/57; all skip/error counters zero. Git context occupied ~65.7% of third scan, while `build_report` was effectively negligible. **Conclusion:** prior broad `report_ms` bottleneck was Git context collection, not report generation. `status=BLOCKED` is the security policy result. **Regression:** `129 passed, 1 skipped in 22.55s`, zero failures. Next: inspect `pipelineguard/git_context.py` and reduce Git command overhead without losing correctness; run before/after benchmarks. Stable v1.0.0 unchanged.
+
+## Git context concurrent-query optimization — 2026-10-08
+
+Earlier attempts to update `pipelineguard/git_context.py` were blocked by GitHub write safety checks, with no changes committed. User requested retry; successful commit `f4ecb50` parallelized the independent branch, porcelain status, and origin remote Git queries using `ThreadPoolExecutor(max_workers=3)` after resolving HEAD. Existing field names, dirty detection (including untracked files), and remote redaction logic were retained. **Performance improvement is hypothetical pending Windows validation** against the prior ~123–132 ms `git_context_ms` baseline; regression tests also pending. Test using `python -m scripts.engine_timing` and `python -m pytest -q` after pulling v2. Stable v1.0.0 unchanged.
