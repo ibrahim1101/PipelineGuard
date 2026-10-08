@@ -213,3 +213,11 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Changes:** Added `docs/CONFIGURATION.md` (commit `bbd16c94`), `examples/pipelineguard.example.json` (commit `3751f4c0`), and desktop '?' help dialog plus copyable sample (commit `b05a7f08`). Updated README with links and CLI usage. Default scanner behavior and stable v1.0.0 remain unchanged. The example uses an empty allowlist to avoid suppressing genuine findings.
 
 **Verification:** GitHub writes succeeded. No local Tk GUI execution, automated test run, Windows packaging, or fresh CI result has yet been observed for this change; mark it **implemented, pending validation**, not tested. **Lesson:** Exposing optional expert settings without discoverable documentation is a UX defect; ensure help text reflects the actual parser rather than the roadmap. **Next:** Run pytest, open the '?' window on Windows, verify copy-to-clipboard, select a valid sample, and confirm invalid JSON produces a clear error. Record pass/fail evidence.
+
+## 14. User-reported Windows pytest checkpoint — 8 October 2026
+
+**Evidence:** User ran `git pull origin feat/v2-engine-integration` from `C:\Users\ibrah\PipelineGuard`, fast-forwarding local checkout from `b03c469` to `b2d62c2`. They then ran `python -m pytest -rs -q` and reported **121 passed, 1 skipped in 18.36s**, with no failures. The skip was `tests/test_traversal.py:24`: Windows symlink creation requires Developer Mode or elevated privileges.
+
+**Scope:** This validates the newly committed `tests/test_v2_telemetry_reports.py` alongside the existing suite **at the local checkout `b2d62c2`**, not the later configuration-help commits. The new desktop '?' help, README links and example JSON were committed subsequently and remain **pending local Windows GUI/pytest validation**.
+
+**Lesson:** Always capture the exact pulled commit and test totals. A passing suite on an older checkout must not be used as evidence that later UI changes work. Next step: pull latest branch, rerun tests, open desktop, inspect help and clipboard action, and select the example config. Stable v1.0.0 unchanged.
