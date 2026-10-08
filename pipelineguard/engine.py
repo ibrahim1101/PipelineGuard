@@ -106,7 +106,8 @@ def run_scan(
                                            metrics=secret_metrics, on_finding=emit_secret if on_finding is not None else None)
         secret_metrics["strategy"] = "incremental"
     else:
-        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
+        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size,
+                                 on_finding=emit_secret if on_finding is not None else None)
     if progress and secret_metrics is not None:
         progress(ProgressEvent("secrets-complete",
                                discovered=secret_metrics["discovered"],
