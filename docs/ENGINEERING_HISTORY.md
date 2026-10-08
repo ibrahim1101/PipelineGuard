@@ -466,3 +466,23 @@ python -m pytest -q -rs
 ```
 
 Record command output, failures, and test results before considering any runtime optimization.
+
+
+## Git subprocess diagnostic validated on Windows — 2026-10-08
+
+The user pulled development commit `d8c5e77` and executed the exact commands below:
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m scripts.git_context_timing --runs 10
+python -m scripts.engine_timing --runs 10 --summary
+python -m pytest -q -rs
+```
+
+Git subprocess diagnostic (10 sequential runs each, median milliseconds): commit 28.96 (26.47–32.00), branch 29.32 (27.41–32.70), status 34.27 (31.22–41.34), remote 28.24 (25.71–31.04); zero failures. Status was the slowest measured command, but process launch overhead is material across all four. The diagnostic does not expose Git stdout/stderr or credentials.
+
+Offline Standard-profile 10-run engine median (milliseconds): setup 31.79, dependencies 7.62, secrets 33.24, Git context 68.70, total 139.96 (range 133.75–170.41). OSV network latency excluded. Scans reported `BLOCKED` as policy outcomes. Secret cache discovered 86 files, hashed 59, and after warmup scanned/reused 27/59. The earlier benchmark median was 128.78 ms with 85 discovered files; differing trees and machine conditions prevent attributing the difference to a regression.
+
+Full test suite: **137 passed, 1 skipped, 0 failed in 21.48s**. The single skip was Windows symlink creation requiring Developer Mode or elevated privileges. No code changes in this validation milestone. Next optimization candidate: reduce Git subprocess launches with regression protection for branch/commit/dirty/remote and credential redaction; benchmark before claiming any improvement.
