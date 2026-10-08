@@ -90,7 +90,8 @@ def run_scan(
     if progress and secret_metrics is not None:
         progress(ProgressEvent("secrets-complete",
                                discovered=secret_metrics["discovered"],
-                               processed=(secret_metrics["scanned"] or 0) + secret_metrics["reused"],
+                               processed=(secret_metrics["scanned"] + secret_metrics["reused"]
+                                          if secret_metrics["scanned"] is not None else None),
                                cached=secret_metrics["reused"]))
     report = build_report(
         apply_allowlist(secrets, settings.allowlist),
