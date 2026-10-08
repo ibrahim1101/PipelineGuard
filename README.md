@@ -56,6 +56,10 @@ docker compose run --rm pipelineguard
 
 The container runs the CLI scanner only; the native desktop application remains available through the Windows build.
 
+## v2 desktop scan profiles and progress (development branch)
+
+The unreleased v2 desktop now offers Quick, Standard, Deep, Release and Forensic profiles, stage-based scan progress, and secret cache statistics when available. Quick disables online intelligence by profile design even if the live OSV checkbox is selected; Standard and Deep support the cache, while Release and Forensic use full secret scans without cache statistics. These are development features, not part of the stable v1.0.0 installer. Verify on Windows before relying on the new controls.
+
 ## Standalone desktop (development)
 
 Launch with `python -m pipelineguard.desktop`. Uses native Tk widgets,
