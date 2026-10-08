@@ -78,6 +78,7 @@ def query_osv(dependencies: list[dict[str, str]], timeout: int = 8, enrich: bool
                 "package": dependency["name"],
                 "version": dependency.get("version", ""),
                 "id": vulnerability.get("id"),
+                "aliases": vulnerability.get("aliases", []),
                 "summary": vulnerability.get("summary", ""),
                 "references": [ref.get("url") for ref in vulnerability.get("references", [])],
                 "advisory_severity": vulnerability.get("database_specific", {}).get("severity", "UNKNOWN"),
@@ -87,4 +88,45 @@ def query_osv(dependencies: list[dict[str, str]], timeout: int = 8, enrich: bool
                 "fixed_versions": fixed,
                 "remediation": "Review fixed versions and affected ranges before upgrading." if fixed else "Review the advisory for mitigation guidance.",
             })
-    return findings
+    return deduplicate_advisories(findings)
+
+
+def deduplicate_advisories(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge advisories only when an explicit alias links their identifiers.
+
+    OSV entries without alias evidence remain separate; different affected
+    packages/versions must never be collapsed together.
+    """
+    merged: list[dict[str, Any]] = []
+    by_key: dict[tuple[str, str, str], int] = {}
+    for item in findings:
+        if item.get("rule") != "Known dependency vulnerability":
+            merged.append(item)
+            continue
+        identifiers = {str(value) for value in [item.get("id"), *item.get("aliases", [])] if value}
+        package = str(item.get("package", ""))
+        version = str(item.get("version", ""))
+        existing = next((by_key[(package, version, identifier)] for identifier in identifiers
+                         if (package, version, identifier) in by_key), None)
+        if existing is None:
+            merged.append(dict(item))
+            existing = len(merged) - 1
+        else:
+            target = merged[existing]
+            target_ids = {str(value) for value in [target.get("id"), *target.get("aliases", [])] if value}
+            target["aliases"] = sorted((target_ids | identifiers) - {str(target.get("id"))})
+            for key in ("references", "fixed_versions", "severity_vectors", "affected_ranges"):
+                values = list(target.get(key) or [])
+                for value in item.get(key) or []:
+                    if value not in values:
+                        values.append(value)
+                target[key] = values
+            if not target.get("summary") and item.get("summary"):
+                target["summary"] = item["summary"]
+            if target.get("advisory_severity") in (None, "UNKNOWN") and item.get("advisory_severity") not in (None, "UNKNOWN"):
+                target["advisory_severity"] = item["advisory_severity"]
+            if item.get("severity") == "CRITICAL":
+                target["severity"] = "CRITICAL"
+        for identifier in identifiers | {str(value) for value in merged[existing].get("aliases", [])}:
+            by_key[(package, version, identifier)] = existing
+    return merged
