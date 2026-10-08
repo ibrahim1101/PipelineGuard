@@ -161,3 +161,41 @@ def test_large_file_reuses_verified_cache(tmp_path, monkeypatch):
     second = {}
     assert scan_secrets_incremental(root, set(), limit, metrics=second) == []
     assert second["reused"] == second["hashed"] == 1
+
+
+def test_strategy_selection_threshold_and_mixed_files(tmp_path):
+    from pipelineguard.secret_cache import choose_scan_strategy
+    root = tmp_path / "strategy"
+    root.mkdir()
+    for i in range(36):
+        (root / f"{i:03d}.txt").write_text("small")
+    for i in range(4):
+        (root / f"{i + 36:03d}.txt").write_text("large" * 300)
+    assert choose_scan_strategy(root, set(), 10000) == "full"
+    (root / "035.txt").write_text("large" * 300)
+    assert choose_scan_strategy(root, set(), 10000) == "incremental"
+
+
+def test_strategy_selection_ignores_oversize_and_small_samples(tmp_path):
+    from pipelineguard.secret_cache import choose_scan_strategy
+    root = tmp_path / "strategy"
+    root.mkdir()
+    for i in range(20):
+        (root / f"{i:03d}.txt").write_text("small")
+    assert choose_scan_strategy(root, set(), 10000) == "incremental"
+    for i in range(20, 40):
+        (root / f"{i:03d}.txt").write_text("X" * 11000)
+    assert choose_scan_strategy(root, set(), 10000) == "incremental"
+
+
+def test_mixed_repository_parity(tmp_path, monkeypatch):
+    from pipelineguard.secret_cache import choose_scan_strategy
+    from scanners.secret_scanner import scan_directory
+    root, target = _setup(tmp_path, monkeypatch)
+    target.write_text('password="abcdefgh123"')
+    for i in range(40):
+        (root / f"file-{i:03d}.txt").write_text("safe " * (300 if i % 4 == 0 else 2))
+    assert choose_scan_strategy(root, set(), 10000) == "incremental"
+    expected = scan_directory(root, set(), 10000)
+    assert scan_secrets_incremental(root, set(), 10000) == expected
+    assert scan_secrets_incremental(root, set(), 10000) == expected
