@@ -718,3 +718,8 @@ User rejected the angular wordmark and altered shield logo as visually incorrect
 ## User-supplied approved cyber-cat branding — 2026-10-09
 
 User supplied the exact approved mockup header screenshot, asked to retain its cyber-cat shield logo and white Pipeline/olive Guard treatment, changing only the title font to a suitable cyber/technical typeface. Commit `7c2258c` embeds a 54x53 color-quantized crop of the user-provided logo as a Tk-compatible PNG in `pipelineguard/brand_asset.py` (no redistributed font binary). Commit `4eb469d` displays this logo in the sidebar and header, renders Pipeline and Guard in Bahnschrift Bold where installed (Segoe UI fallback), and preserves the original tagline. Commit `484dbd1` tests logo load and fallback; `336c7b3` removes obsolete test assertions from the rejected experimental pixel-wordmark. Note that the logo crop has a small amount of original mockup background, so the image/background seam should be checked at normal Windows scaling. **CI and user acceptance pending.**
+
+
+## Global top-left branding placement — 2026-10-09
+
+User showed that the single approved cyber-cat logo/title still appeared offset right, inside the workspace, and requested the originally agreed top-left placement. Commit `144e7f3` restructures Tk layout: a full-width header is packed into the root before a new content frame, with sidebar and workspace beneath it. The approved logo asset, Bahnschrift title, colors and tagline remain unchanged. Commit `0d663f1` adds a desktop Tk layout regression test. **Visual QA and CI pending.**
