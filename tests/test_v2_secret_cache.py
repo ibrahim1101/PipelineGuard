@@ -53,3 +53,36 @@ def test_corrupt_cache_rescans_and_prunes_deleted_file(tmp_path, monkeypatch):
     target.unlink()
     assert scan_secrets_incremental(root, set(), 100) == []
     assert json.loads(cache.read_text())["files"] == {}
+
+
+def test_tampered_cache_entry_is_rescanned(tmp_path, monkeypatch):
+    from pipelineguard import secret_cache
+    root, target = _setup(tmp_path, monkeypatch)
+    scan_secrets_incremental(root, set(), 100)
+    name = hashlib.sha256(os.fsencode(str(root.resolve()))).hexdigest() + ".json"
+    cache = tmp_path / "cache" / "PipelineGuard" / "secret-findings" / name
+    data = json.loads(cache.read_text())
+    data["files"]["a.txt"]["findings"] = [{"severity": "SAFE", "rule": "unknown", "confidence": "high", "file": "a.txt", "line": 0}]
+    cache.write_text(json.dumps(data))
+    calls = []
+    original = secret_cache.scan_file
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    assert scan_secrets_incremental(root, set(), 100) == []
+    assert calls == [1]
+
+
+def test_changed_limit_invalidates_cache(tmp_path, monkeypatch):
+    from pipelineguard import secret_cache
+    root, target = _setup(tmp_path, monkeypatch)
+    scan_secrets_incremental(root, set(), 100)
+    calls = []
+    original = secret_cache.scan_file
+    def spy(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(secret_cache, "scan_file", spy)
+    scan_secrets_incremental(root, set(), 101)
+    assert calls == [1]
