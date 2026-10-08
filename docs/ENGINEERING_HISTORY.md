@@ -703,3 +703,8 @@ User visually confirmed the new SOC chart panels and requested continued develop
 ## SOC pixel-cat scan indicator — 2026-10-09
 
 After user confirmed the desktop syntax correction appeared and asked to continue, commits `4eb0b06` and `80df897` added a small pixel-art cat with laptop to the sidebar using built-in Tk Canvas shapes. Idle state displays CAT ON DUTY; scan state displays SCANNING with changing dots, updated at most every five 100ms poll cycles. No large cat illustrations, third-party image assets, or engine changes. Commit `94fa25f` adds a Tk regression test for idle/active state. **CI and Windows tests not yet verified.** Next: user-requested top-left cyber-cat shield branding, visual layout QA, packaging and workflow validation.
+
+
+## Angular wordmark from user reference — 2026-10-09
+
+User supplied an image showing angular pixel/cyber-styled PipelineGuard lettering and requested it replace the plain top-left title without removing the cyber-cat branding. Commits `b309b0f` and `ac98ad5` implement a dependency-free Tk Canvas pixel wordmark in `pipelineguard/wordmark.py`, replacing plain title labels in the header and sidebar, with a small geometric cat-shield mark. This is an approximation of the visual style, not an exact licensed font or copied binary asset. Commit `16e3471` adds rendering assertions. **CI and user visual approval pending**; verify wordmark legibility at normal Windows scaling.
