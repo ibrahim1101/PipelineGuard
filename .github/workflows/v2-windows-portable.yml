@@ -1,0 +1,41 @@
+name: PipelineGuard v2 Windows portable (development)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Run automated tests
+        shell: pwsh
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pytest -q -rs
+      - name: Package v2 desktop
+        shell: pwsh
+        run: ./scripts/build-v2-windows.ps1
+      - name: Verify portable executable
+        shell: pwsh
+        run: |
+          $exe = "dist/PipelineGuard-v2/PipelineGuard-v2.exe"
+          if (!(Test-Path $exe)) { throw "Missing packaged executable" }
+          if ((Get-Item $exe).Length -le 0) { throw "Packaged executable is empty" }
+          Write-Host "Portable binary exists; interactive desktop launch still requires manual Windows testing."
+      - name: Upload portable development build
+        uses: actions/upload-artifact@v4
+        with:
+          name: PipelineGuard-v2-Windows-portable
+          path: dist/PipelineGuard-v2/
+          if-no-files-found: error
+          retention-days: 14
