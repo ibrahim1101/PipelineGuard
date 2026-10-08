@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from datetime import datetime, timezone
 import os
+from time import perf_counter
 from pathlib import Path
 from typing import Callable
 
@@ -37,12 +38,15 @@ def run_scan(
     progress: Callable[[ProgressEvent], None] | None = None,
     baseline_path: Path | None = None,
     update_baseline: bool = False,
+    timings: dict[str, float] | None = None,
 ):
     """Scan a project, optionally collecting v2 telemetry and baseline differences.
 
     Fingerprint reuse is *not* analyzer-result reuse: the security scanners
     still inspect all eligible files on every run to preserve v1 coverage.
     """
+    scan_started = perf_counter()
+    stage_started = scan_started
     if not path.is_dir():
         raise ValueError("Select an existing project directory")
     if update_baseline and baseline_path is None:
@@ -64,15 +68,24 @@ def run_scan(
                 # Cache errors must never suppress the security scan itself.
                 if progress:
                     progress(ProgressEvent("fingerprint-unavailable"))
+    if timings is not None:
+        timings["setup_ms"] = (perf_counter() - stage_started) * 1000
+    stage_started = perf_counter()
     if progress:
         progress(ProgressEvent("dependencies"))
     records = scan_dependencies(path, settings.ignored_directories)
     packages = reconcile_inventory(records)
+    if timings is not None:
+        timings["dependencies_ms"] = (perf_counter() - stage_started) * 1000
+    stage_started = perf_counter()
     if progress:
         progress(ProgressEvent("vulnerability-intelligence"))
     vulnerabilities = query_osv(packages, enrich=True) if online else [
         {"severity": "WARNING", "rule": "Dependency check incomplete", "summary": "Online vulnerability lookup disabled."}
     ]
+    if timings is not None:
+        timings["osv_ms"] = (perf_counter() - stage_started) * 1000
+    stage_started = perf_counter()
     if progress:
         progress(ProgressEvent("secrets"))
     use_secret_cache = selected is not None and selected.name.lower() in {"quick", "standard", "deep"}
@@ -94,6 +107,9 @@ def run_scan(
                                processed=(secret_metrics["scanned"] + secret_metrics["reused"]
                                           if secret_metrics["scanned"] is not None else None),
                                cached=secret_metrics["reused"]))
+    if timings is not None:
+        timings["secrets_ms"] = (perf_counter() - stage_started) * 1000
+    stage_started = perf_counter()
     report = build_report(
         apply_allowlist(secrets, settings.allowlist),
         apply_allowlist(records + vulnerabilities, settings.allowlist),
@@ -117,6 +133,9 @@ def run_scan(
             finding["baseline_state"] = comparison["finding_states"][finding_key(finding)]
         if update_baseline:
             write_baseline(baseline_path, report["findings"])
+    if timings is not None:
+        timings["report_ms"] = (perf_counter() - stage_started) * 1000
+        timings["total_ms"] = (perf_counter() - scan_started) * 1000
     if progress:
         progress(ProgressEvent("complete"))
     return report
