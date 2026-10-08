@@ -140,3 +140,9 @@ def test_soc_wordmark_and_cat_shield_render(desktop):
     assert desktop.header_wordmark.find_withtag("wordmark")
     assert desktop.sidebar_brand.find_withtag("wordmark")
     assert desktop.sidebar_brand.find_withtag("cat-logo")
+
+
+def test_approved_brand_asset_loads(desktop):
+    assert desktop.cat_logo.width() == 54
+    assert desktop.cat_logo.height() == 53
+    assert desktop.brand_font in ("Bahnschrift", "Segoe UI")
