@@ -29,10 +29,13 @@ def scan(
     output: Path | None = typer.Option(None, "--output", "-o", help="Write a JSON or HTML report file."),
     config: Path | None = typer.Option(None, "--config", help="Path to a .pipelineguard.json file."),
     annotations: bool = typer.Option(False, "--github-annotations", help="Emit GitHub Actions annotations to stderr."),
+    profile: str | None = typer.Option(None, "--profile", help="Scan profile: quick, standard, deep, release, forensic."),
+    baseline: Path | None = typer.Option(None, "--baseline", help="Compare findings with a baseline snapshot."),
+    save_baseline: bool = typer.Option(False, "--save-baseline", help="Update the baseline snapshot after comparison."),
 ) -> None:
     """Scan a project directory for exposed secrets."""
     try:
-        report = run_scan(path, config)
+        report = run_scan(path, config, profile=profile, baseline_path=baseline, update_baseline=save_baseline)
     except (OSError, ValueError) as exc:
         typer.echo(f"Configuration error: {exc}", err=True)
         raise typer.Exit(code=2)
