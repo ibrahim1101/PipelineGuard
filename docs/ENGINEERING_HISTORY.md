@@ -385,3 +385,14 @@ Updated `docs/NEW_CHAT_HANDOFF.md` in commit `0d82d89` with current v2 state, Wi
 ## Git-context regression milestone — 2026-10-08 (awaiting Windows validation)
 
 Commit `27d86996d5ddcf9e1fab3779c150eb6e64240c91` added `tests/test_git_context_regression.py` on `feat/v2-engine-integration` only. Eight parametrized test cases exercise clean repositories, modified tracked files, untracked files, detached HEAD, non-Git directories, HTTPS credential/query/fragment redaction, SCP-style SSH remotes and ambiguous multi-segment remote paths. The tests use temporary Git repositories and do not alter application runtime code or stable v1.0.0. Existing Git-context tests were inspected before authoring. The first attempt to retrieve this journal through the generic GitHub fetch endpoint as JSON failed because the endpoint returned Markdown; recovery used the typed fetch_file action. **Validation status:** tests committed but not yet executed on Windows; do not count them as passing until user supplies actual pytest output. Run `python -m pytest -q tests/test_git_context_regression.py`, `python -m pytest -q`, and `python -m scripts.engine_timing`. Record failures and measurements after execution.
+
+
+## Windows regression validation — 2026-10-08
+
+The user pulled development head `d024fad` and ran the new Git-context tests on Windows PowerShell: **8 passed in 4.77s**. The complete suite reported **137 passed, 1 skipped in 24.79s**; skip reason not yet inspected. No failing tests were reported.
+
+Offline Standard-profile engine timing results (milliseconds): run 1 setup 35.91, dependencies 7.89, secrets 38.49, Git context 74.22, total 156.60; run 2 setup 33.08, dependencies 7.84, secrets 38.83, Git context 72.80, total 152.59; run 3 setup 31.91, dependencies 7.55, secrets 35.41, Git context 68.79, total 143.70. OSV network latency was excluded (offline). All three scan statuses were `BLOCKED` as security-policy results, not execution errors. Secret cache: 85 files discovered per run, 58 hashed; scanned/reused counts were 30/55, 27/58, 27/58; no skipped-size/changed/error files.
+
+Compared with earlier three-run totals (147.23, 133.60, 129.20 ms), these new totals are higher; the working tree changed and these are not controlled paired measurements, so no performance gain is claimed. Next: gather 10-run timing data, inspect the single pytest skip using `python -m pytest -q -rs`, and investigate setup and secret scanning without compromising detection coverage.
+
+Documentation failure and recovery: first attempt to record this milestone was blocked by a safety check before a GitHub commit was confirmed. This entry is the retry; the preceding failure is retained as part of the engineering record.
