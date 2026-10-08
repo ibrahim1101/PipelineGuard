@@ -91,7 +91,17 @@ def run_scan(
         progress(ProgressEvent("secrets"))
     use_secret_cache = selected is not None and selected.name.lower() in {"quick", "standard", "deep"}
     secret_metrics: dict[str, int | str | None] | None = {} if use_secret_cache else None
-    if use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
+    def emit_secret(finding: dict[str, object]) -> None:
+        if on_finding is not None and apply_allowlist([finding], settings.allowlist):
+            on_finding(dict(finding))
+
+    if on_finding is not None:
+        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size, on_finding=emit_secret)
+        if secret_metrics is not None:
+            secret_metrics.update({"strategy": "streaming-full", "discovered": None, "hashed": None,
+                                   "scanned": None, "reused": 0, "skipped_size": None,
+                                   "skipped_changed": None, "skipped_error": None})
+    elif use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
         secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
         # Full scans do not expose per-file counters; mark them unavailable.
         secret_metrics.update({"strategy": "full", "discovered": None, "hashed": None, "scanned": None,
@@ -117,7 +127,7 @@ def run_scan(
     if on_finding is not None:
         # Findings are emitted only after allowlist filtering. Callback failures
         # propagate rather than silently producing an incomplete scan.
-        for finding in (*visible_secrets, *visible_other):
+        for finding in visible_other:
             on_finding(dict(finding))
     report = build_report(visible_secrets, visible_other)
     if timings is not None:
