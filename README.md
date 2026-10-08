@@ -2,7 +2,7 @@
 
 ## Engineering history and test evidence
 
-The living [Engineering History, Trial-and-Error Log & Test Evidence](docs/ENGINEERING_HISTORY.md) records implementation milestones, failed attempts, fixes, CI validation, Windows test skips, and repeatable performance benchmarks for future final-project reporting.
+The editable, living [Engineering History, Trial-and-Error Log & Test Evidence](docs/ENGINEERING_HISTORY.md) records implementation milestones, failed attempts, fixes, CI validation, Windows test skips, and repeatable performance benchmarks for future final-project reporting. For a fresh conversation, start with the [New Chat Handoff](docs/NEW_CHAT_HANDOFF.md) to recover current branch, last verified results, open work, and documentation rules.
 
 ## Release and development status
 
