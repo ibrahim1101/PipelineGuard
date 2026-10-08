@@ -550,3 +550,21 @@ python -m scripts.engine_timing --runs 10 --summary
 ```
 
 Record any failures, fixes, and actual results before continuing to real-time analyzer streaming.
+
+
+## Finding callback foundation: Windows validation — 2026-10-09
+
+The user pulled commit `3c02dc2` and executed:
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_finding_callback.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Finding callback tests: **2 passed in 0.09s**. Full suite: **141 passed, 1 skipped, 0 failed in 17.72s**; skip was Windows symlink privilege requirement. Offline Standard-profile ten-run medians (ms): setup 25.65, dependencies 6.88, secrets 32.46, Git context 54.67, total 118.20 (range 113.42–133.91). Prior independent benchmark medians were Git context 60.88 and total 133.25 ms; observed reductions 10.2% and 11.3%, respectively, without controlled A/B proof. Secret cache discovered 87, hashed 59; warm runs scanned 28/reused 59; zero skipped/error counters. All runs `BLOCKED` as expected policy results. OSV network latency excluded.
+
+The callback is validated as an opt-in post-analysis finding notification, **not yet true in-scan streaming**. Next milestones: analyzer-time event emission, secure callback handling, and SOC desktop integration.
