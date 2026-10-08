@@ -1,10 +1,14 @@
 # PipelineGuard
 
+## Engineering history and test evidence
+
+The living [Engineering History, Trial-and-Error Log & Test Evidence](docs/ENGINEERING_HISTORY.md) records implementation milestones, failed attempts, fixes, CI validation, Windows test skips, and repeatable performance benchmarks for future final-project reporting.
+
 ## Release and development status
 
 **Stable release:** v1.0.0 (Windows installer, CLI and Tk desktop). **v2.0 is unreleased development** on `feat/v2-engine-integration` / PR #1; do not treat its capabilities as part of the stable installer.
 
-The v2 development branch currently includes scan profiles, external verified SHA-256 fingerprints, bounded fingerprint workers, progress events, Git context with remote credential redaction, and baseline finding differences. Fingerprint caching is **not** cached secret-scanner findings: secret rules still execute on every eligible file. Streaming findings, actual analyzer-result reuse, dependency reachability, and the redesigned SOC desktop remain planned, not released. Linux/Windows CI success on the development branch does not constitute a v2 release.
+The v2 development branch currently includes scan profiles, external verified SHA-256 fingerprints, bounded fingerprint workers, progress events, Git context with remote credential redaction, and baseline finding differences. The v2 development branch now includes a separate **content-verified secret-findings cache** and adaptive full/incremental scan selection. Cached findings are reused only after content verification; tiny-file-heavy repositories can use full scanning instead. The fingerprint cache and secret-findings cache are distinct. Streaming findings, actual analyzer-result reuse, dependency reachability, and the redesigned SOC desktop remain planned, not released. Linux/Windows CI success on the development branch does not constitute a v2 release.
 
 ## Advisory release policy
 
