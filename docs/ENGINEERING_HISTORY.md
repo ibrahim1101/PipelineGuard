@@ -237,3 +237,11 @@ Copy this template for each meaningful experiment, feature, regression or releas
 **Verification scope:** Desktop startup and '?' help dialog visibility are **manually confirmed**. Copy-example clipboard contents, sample configuration selection, and actual scan completion **have not yet been reported**. No new automated test or packaging claim is made. Stable v1.0.0 untouched.
 
 **Next acceptance checks:** Copy the example into an editor, select `examples/pipelineguard.example.json`, scan a chosen project, and report the outcome. Record failures or successes as observed.
+
+## 17. Configuration-guided scan acceptance — 8 October 2026
+
+**Manual Windows acceptance, user-reported:** Following the 121-passed/1-skipped pytest run on checkout `2a3d203`, the user confirmed the desktop and '?' configuration-help dialog opened correctly. After instructions to use the sample configuration (`examples/pipelineguard.example.json`) for a project scan, the user reported **"haha it worked"**.
+
+**Result:** User confirms the guided configuration workflow worked and the configured scan succeeded. This is a **user-reported manual success**, not a captured application log or automated test. Clipboard example copying was part of the suggested steps, but no independent detailed output was supplied; do not claim byte-for-byte clipboard verification. No new benchmark or packaging evidence. **Lesson:** In-app discoverable documentation and a real selectable example eliminate uncertainty around advanced options; validate UX through both automated regressions and physical Windows acceptance.
+
+**Remaining:** Broader v2 engine roadmap, dedicated UI regression automation where feasible, packaging/installer acceptance for the v2 branch. Stable v1.0.0 untouched.
