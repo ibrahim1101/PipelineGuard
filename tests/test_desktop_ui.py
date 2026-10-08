@@ -134,3 +134,9 @@ def test_pixel_cat_indicator_tracks_scan_state(desktop):
     assert "SCANNING" in desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text")
     desktop._render_pixel_cat(False)
     assert desktop.cat_canvas.itemcget(desktop.cat_canvas.find_all()[-1], "text") == "CAT ON DUTY"
+
+
+def test_soc_wordmark_and_cat_shield_render(desktop):
+    assert desktop.header_wordmark.find_withtag("wordmark")
+    assert desktop.sidebar_brand.find_withtag("wordmark")
+    assert desktop.sidebar_brand.find_withtag("cat-logo")
