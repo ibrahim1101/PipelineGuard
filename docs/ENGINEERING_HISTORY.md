@@ -678,3 +678,8 @@ Approved visual spec: `docs/SOC_DESIGN_SPEC.md`. Commit `94311bb` introduces an 
 ## SOC redesign stage 2a — dark palette and widget styling (2026-10-09)
 
 User visually verified Stage 1 sidebar screenshot and authorized continued implementation. Commits `5f61854` and `7ed9025` update `pipelineguard/theme.py` with dark charcoal/olive design tokens and apply Tk/ttk styling adjustments in `pipelineguard/desktop.py`, including readonly combobox colors, tree selection, dark OSV checkbox and clear control for findings search. No scanner engine changes. **Validation pending**: inspect Windows screenshot for readability, checkboxes, Tk entry appearance, report export and regression suite. Analytics and actual cyber-cat logo are not yet implemented. Test with `python -m pytest -q tests/test_desktop_ui.py` and `python -m pipelineguard.desktop`.
+
+
+## SOC dark theme accepted and real analytics panel milestone — 2026-10-09
+
+User explicitly confirmed the dark desktop theme is working, but could not supply a screenshot. This is user-reported hands-on success, not an automated test result. Commit `d80d75d` adds two SOC overview panels: recent scans from the persisted 25-entry local history (display last three) and scan insights based on the actual report summary and secret cache metrics. Refresh on completed scan and after history clearing. The UI has no invented chart points or fake historical projects. CI/Windows verification for the analytics change remains pending. Follow-up: genuine history trend chart, severity distribution, responsive layout and pixel-cat loading state.
