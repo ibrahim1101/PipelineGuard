@@ -21,9 +21,19 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
+def _file_identity(stat: os.stat_result) -> tuple[int, int, int, int, int]:
+    """Detect replacement or in-flight modification while hashing."""
+    return (stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_dev, stat.st_ino)
+
+
 @dataclass
 class ScanCache:
-    """Small persistent cache keyed by normalized repository-relative path."""
+    """Persistent fingerprints keyed by normalized repository-relative path.
+
+    Cached metadata never proves content is unchanged. Re-hash each file
+    before marking a fingerprint reusable. This allows a future result cache
+    to skip expensive parsing without trusting timestamps.
+    """
 
     path: Path
     entries: dict[str, dict[str, object]] = field(default_factory=dict)
@@ -35,26 +45,41 @@ class ScanCache:
             return cls(cache_path)
         try:
             payload = json.loads(cache_path.read_text(encoding="utf-8"))
-            if payload.get("version") != CACHE_VERSION or not isinstance(payload.get("entries"), dict):
+            if (not isinstance(payload, dict) or payload.get("version") != CACHE_VERSION
+                    or not isinstance(payload.get("entries"), dict)):
                 return cls(cache_path)
-            return cls(cache_path, dict(payload["entries"]))
-        except (OSError, json.JSONDecodeError, AttributeError):
-            # A damaged cache must never prevent a security scan.
+            entries = payload["entries"]
+            if any(not isinstance(key, str) or not isinstance(value, dict)
+                   for key, value in entries.items()):
+                return cls(cache_path)
+            return cls(cache_path, dict(entries))
+        except (OSError, ValueError, TypeError):
             return cls(cache_path)
 
     def key_for(self, root: Path, path: Path) -> str:
         return path.relative_to(root).as_posix()
 
     def digest(self, root: Path, path: Path) -> tuple[str, bool]:
-        """Return digest and whether the cached fingerprint could be reused."""
+        """Return verified SHA-256 and whether previous content matched.
+
+        The second value indicates a verified match, NOT skipped I/O.
+        """
         key = self.key_for(root, path)
-        stat = path.stat()
-        cached = self.entries.get(key, {})
-        if cached.get("size") == stat.st_size and cached.get("mtime_ns") == stat.st_mtime_ns and cached.get("sha256"):
-            return str(cached["sha256"]), True
-        value = sha256_file(path)
-        self.entries[key] = {"size": stat.st_size, "mtime_ns": stat.st_mtime_ns, "sha256": value}
-        return value, False
+        for _ in range(2):
+            before = path.stat()
+            value = sha256_file(path)
+            after = path.stat()
+            if _file_identity(before) == _file_identity(after):
+                cached = self.entries.get(key, {})
+                reused = cached.get("sha256") == value
+                self.entries[key] = {
+                    "size": after.st_size,
+                    "mtime_ns": after.st_mtime_ns,
+                    "ctime_ns": after.st_ctime_ns,
+                    "sha256": value,
+                }
+                return value, reused
+        raise OSError(f"File changed while hashing: {path}")
 
     def prune(self, live_keys: set[str]) -> None:
         self.entries = {key: value for key, value in self.entries.items() if key in live_keys}
