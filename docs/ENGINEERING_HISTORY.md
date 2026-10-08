@@ -486,3 +486,15 @@ Git subprocess diagnostic (10 sequential runs each, median milliseconds): commit
 Offline Standard-profile 10-run engine median (milliseconds): setup 31.79, dependencies 7.62, secrets 33.24, Git context 68.70, total 139.96 (range 133.75–170.41). OSV network latency excluded. Scans reported `BLOCKED` as policy outcomes. Secret cache discovered 86 files, hashed 59, and after warmup scanned/reused 27/59. The earlier benchmark median was 128.78 ms with 85 discovered files; differing trees and machine conditions prevent attributing the difference to a regression.
 
 Full test suite: **137 passed, 1 skipped, 0 failed in 21.48s**. The single skip was Windows symlink creation requiring Developer Mode or elevated privileges. No code changes in this validation milestone. Next optimization candidate: reduce Git subprocess launches with regression protection for branch/commit/dirty/remote and credential redaction; benchmark before claiming any improvement.
+
+
+## v2.0 scope consolidation decision — 2026-10-08
+
+User directed that features previously suggested for v2.1 must ship as part of **v2.0**, not a separate v2.1. Includes SOC-style desktop redesign, streaming findings, advanced analyzer-result caching, and dependency reachability. v3.0 is reserved for later optimization and development. This updates release scope only; the features are not yet confirmed implemented. Handoff updated in commit `8d7d29fe9728b43954391f940be98c2437a17247`. No application code or stable v1.0.0 changed.
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+git log -2 --oneline
+```
