@@ -1,0 +1,20 @@
+{
+  "ignored_directories": [
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    "dist",
+    "build"
+  ],
+  "max_file_size": 1000000,
+  "fail_on_warning": false,
+  "allowlist": [],
+  "minimum_score": 70,
+  "blocked_rules": [
+    "Generic secret assignment"
+  ],
+  "block_advisory_severity": "HIGH"
+}
