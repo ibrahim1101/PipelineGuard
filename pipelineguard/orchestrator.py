@@ -12,8 +12,8 @@ from pipelineguard.cache import ScanCache
 @dataclass(frozen=True)
 class ProgressEvent:
     stage: str
-    discovered: int = 0
-    processed: int = 0
+    discovered: int | None = 0
+    processed: int | None = 0
     cached: int = 0
     path: str | None = None
 
