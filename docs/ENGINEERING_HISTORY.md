@@ -299,3 +299,7 @@ Updated `scripts/cache_benchmark.py` in commit `35c5cb5` to record elapsed milli
 ## First timed cache benchmark — Windows, 2026-10-08
 
 User pulled v2 through `5d79af6` and executed `python -m scripts.cache_benchmark` on Windows PowerShell. **Observed single-run synthetic timings:** cold **31.14 ms** (40 scanned, 0 reused), warm **10.68 ms** (0 scanned, 40 reused), modified **12.77 ms** (1 scanned, 39 reused). Every phase hashed all 40 files; all skip/error counters were zero. Printed cold/warm ratio: **2.92x**. This is a single, 40-file synthetic benchmark, not a reproducible or representative speedup claim. Repeat runs and larger workloads are needed before any optimization conclusion. The baseline remains v2 development only; stable v1.0.0 unchanged.
+
+## Repeated median cache benchmarking — 2026-10-08
+
+Upgraded `scripts/cache_benchmark.py` in commit `5ca5542` to benchmark independent synthetic projects with configurable file counts (`--files`, default 40 and 400) and trials (`--trials`, default 5). Each trial checks cold/warm/one-file-modified correctness, records elapsed milliseconds, and prints median cold, warm and modified durations plus median cold/warm ratio. The benchmark uses temporary directories and an isolated cache. **Windows measurements for this new repeated benchmark are pending.** Interpret median timing ratios as workload-specific rather than general production speedups.
