@@ -54,3 +54,17 @@ def test_scan_error_restores_controls(desktop):
         desktop.poll()
     assert not desktop.scan_button.instate(["disabled"])
     message.assert_called_once()
+
+
+def test_live_finding_updates_before_final_report(desktop):
+    desktop.report = None
+    desktop.all_findings = []
+    desktop.events.put(("finding", {"severity": "CRITICAL", "rule": "Live test finding", "file": "example.py", "line": 1}))
+    desktop.poll()
+    assert desktop.report is None
+    assert len(desktop.all_findings) == 1
+    assert len(desktop.tree.get_children()) == 1
+    assert desktop.findings_value.cget("text") == "1"
+    desktop.tree.selection_set("0")
+    desktop.details()
+    assert "Live test finding" in desktop.detail.get("1.0", "end")
