@@ -498,3 +498,19 @@ git switch feat/v2-engine-integration
 git pull origin feat/v2-engine-integration
 git log -2 --oneline
 ```
+
+
+## Git context subprocess reduction — 2026-10-08
+
+Implementation commit `e143a4aa76a78157fe8f8a03002937fcc75824e4` changes Git context collection from four subprocesses to three: after `rev-parse HEAD`, two concurrent operations collect `status --porcelain=v1 --branch` and remote configuration. Branch and dirty state are parsed from the same porcelain output; detached HEAD remains branch `None`. Credential redaction function unchanged. Test commit `a54f107a0f6f491c28250f662914b2982f7602a5` adds upstream-branch and staged-change regression coverage. No verified Windows results yet; performance improvement remains a hypothesis.
+
+```powershell
+cd C:\Users\ibrah\PipelineGuard
+git switch feat/v2-engine-integration
+git pull origin feat/v2-engine-integration
+python -m pytest -q tests/test_git_context_regression.py
+python -m pytest -q -rs
+python -m scripts.engine_timing --runs 10 --summary
+```
+
+Compare against previous 10-run Git context median **68.70 ms** and total median **139.96 ms** cautiously; repository contents and machine conditions may differ. Log actual outputs and any failures before proceeding.
