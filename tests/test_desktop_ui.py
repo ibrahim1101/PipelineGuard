@@ -150,3 +150,17 @@ def test_branding_is_above_navigation_and_workspace(desktop):
     assert desktop.sidebar.master is desktop.content_frame
     assert desktop.workspace.master is desktop.content_frame
     assert header.winfo_y() <= desktop.content_frame.winfo_y()
+
+
+def test_recent_scans_use_real_line_breaks(desktop, tmp_path):
+    history = tmp_path / "history.json"
+    history.write_text(json.dumps([
+        {"project": "first-project", "status": "SAFE", "findings": 0},
+        {"project": "second-project", "status": "BLOCKED", "findings": 2},
+    ]), encoding="utf-8")
+    desktop.history_file = history
+    desktop._refresh_analytics()
+    value = desktop.recent_scans_text.cget("text")
+    assert "\\n" not in value
+    assert "\n" in value
+    assert "first-project" in value and "second-project" in value
