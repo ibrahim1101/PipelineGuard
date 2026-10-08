@@ -95,20 +95,15 @@ def run_scan(
         if on_finding is not None and apply_allowlist([finding], settings.allowlist):
             on_finding(dict(finding))
 
-    if on_finding is not None:
-        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size, on_finding=emit_secret)
-        if secret_metrics is not None:
-            secret_metrics.update({"strategy": "streaming-full", "discovered": None, "hashed": None,
-                                   "scanned": None, "reused": 0, "skipped_size": None,
-                                   "skipped_changed": None, "skipped_error": None})
-    elif use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
-        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
+    if use_secret_cache and choose_scan_strategy(path, settings.ignored_directories, settings.max_file_size) == "full":
+        secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size,
+                                 on_finding=emit_secret if on_finding is not None else None)
         # Full scans do not expose per-file counters; mark them unavailable.
         secret_metrics.update({"strategy": "full", "discovered": None, "hashed": None, "scanned": None,
                                "reused": 0, "skipped_size": None, "skipped_changed": None, "skipped_error": None})
     elif use_secret_cache:
         secrets = scan_secrets_incremental(path, settings.ignored_directories, settings.max_file_size,
-                                           metrics=secret_metrics)
+                                           metrics=secret_metrics, on_finding=emit_secret if on_finding is not None else None)
         secret_metrics["strategy"] = "incremental"
     else:
         secrets = scan_directory(path, settings.ignored_directories, settings.max_file_size)
