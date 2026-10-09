@@ -166,6 +166,10 @@ class Desktop:
             self.header_scan_button.focus_set()
             return
         if destination == "Settings":
+            for name, button in self.nav_buttons.items():
+                active = name == "Settings"
+                button.configure(bg=OLIVE_DARK if active else OLIVE_DEEP,
+                                 fg=OLIVE_LIGHT if active else MUTED)
             self.show_settings()
             return
         if destination == "Reports":
