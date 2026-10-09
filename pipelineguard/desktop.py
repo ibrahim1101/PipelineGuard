@@ -145,12 +145,12 @@ class Desktop:
         """Separate existing dashboard and findings widgets without rebuilding scan state."""
         self._page_pack_options = {
             widget: dict(widget.pack_info())
-            for widget in self.workspace.winfo_children()
+            for widget in self.workspace.pack_slaves()
         }
         self._dashboard_widgets = []
         self._findings_widgets = []
         findings_started = False
-        for widget in self.workspace.winfo_children():
+        for widget in self.workspace.pack_slaves():
             if isinstance(widget, tk.Label) and widget.cget("text") == "Security findings":
                 findings_started = True
             (self._findings_widgets if findings_started else self._dashboard_widgets).append(widget)
