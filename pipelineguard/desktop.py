@@ -72,7 +72,6 @@ class Desktop:
         self._build_analytics()
         self._build_charts()
         self._build_findings()
-        self._build_pixel_cat()
         self.root.after(100, self.poll)
 
     def _build_shell(self):
@@ -603,46 +602,9 @@ class Desktop:
                                  text=f"{level.title()}: {count}",
                                  fill=colors[level], font=("Segoe UI", 9))
 
-    def _build_pixel_cat(self):
-        """Tiny coding-cat scan indicator; no external image assets."""
-        self.cat_canvas = tk.Canvas(self.sidebar, width=96, height=68, bg=OLIVE_DEEP,
-                                    highlightthickness=0)
-        self.cat_canvas.pack(side="bottom", pady=(0, 12))
-        self.cat_frame = 0
-        self.cat_ticks = 0
-        self._render_pixel_cat(False)
-
     def _render_pixel_cat(self, active):
-        canvas = self.cat_canvas
-        canvas.delete("all")
-        scale = 4
-        # Small pixel-art cat with ears, face and a laptop.
-        pixels = [
-            "  G     G  ",
-            " GGG   GGG ",
-            " GGGGGGGGG ",
-            " GWWGWWGWG ",
-            " GGGGPGGGG ",
-            "  GGGGGGG  ",
-            "  BBBBBBB  ",
-            "  BLL LBB  ",
-            "  BBBBBBB  ",
-            "   BBBBB   ",
-        ]
-        palette = {"G": OLIVE_LIGHT, "W": WHITE, "P": WARNING,
-                   "B": OLIVE_MID, "L": OLIVE_DEEP}
-        offset_x, offset_y = 23, 4
-        for y, line in enumerate(pixels):
-            for x, char in enumerate(line):
-                if char in palette:
-                    canvas.create_rectangle(offset_x + x * scale, offset_y + y * scale,
-                                            offset_x + (x + 1) * scale, offset_y + (y + 1) * scale,
-                                            fill=palette[char], outline="")
-        dots = "." * (self.cat_frame % 4) if active else ""
-        canvas.create_text(48, 55, text=("SCANNING" + dots if active else "CAT ON DUTY"),
-                           fill=OLIVE_LIGHT, font=("Consolas", 8, "bold"))
-        if active:
-            self.cat_frame += 1
+        """Legacy scan indicator hook; sidebar pixel art intentionally removed."""
+        return
 
     def _build_findings(self):
         self._label(self.workspace, "Security findings", 15, OLIVE_LIGHT, True).pack(
