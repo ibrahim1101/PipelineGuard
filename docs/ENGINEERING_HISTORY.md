@@ -773,3 +773,14 @@ User supplied a polished dashboard reference image and an actual Windows screens
 **Failure:** attempts to add a separate Tk findings-tab test file were rejected by connector safety checks; no such test was committed. Do not misreport this as an automated-test success. The existing Tk tests remain in the repo and the new pure Python tests are present.
 
 **Verification pending at this entry:** Linux run 37859563854 was in progress and Windows run 37859563891 pending for head `d3d0fff`. CI results and physical visual acceptance are not yet known. If CI fails, inspect job logs and repair before the next feature increment. Follow-up: verify tabs and clipboard behavior on Windows, add graphical tab tests when connector permits, improve inspector layout and richer source previews only with strict secret redaction and explicit privacy boundaries.
+
+
+## SOC inspector component extraction — 2026-10-09, ~06:00 IST
+
+**Fresh remote check:** main remains stable at 5347d260; v2 is ahead on the development branch. Previously pending Linux 37859607882 and Windows 37859607893 both completed successfully. No prior failed workflow required a retry. This does not validate new changes below.
+
+**Progress:** commit 28a23fe adds a bounded, sanitized heading helper in `soc_inspector.py`. Commit 8f45f8e introduces `pipelineguard/soc_finding_panel.py`, a reusable reference-styled dark SOC inspector with a severity badge, metadata/remediation area, intentionally masked source-location preview and clipboard copying of safe allowlisted details only. Commit 94399d1 adds helper/privacy and Tk smoke tests. This component is **not yet integrated into the main desktop**, so do not claim the new panel is visible in the running application.
+
+**Blocked writes:** two attempts to update the existing 58 KB `pipelineguard/desktop.py` via the GitHub connector were rejected by safety checks. First attempt included navigation and inspector layout changes; second was a smaller navigation-only change. Refetch confirmed the edits had not landed. Avoid repeated identical retries; consider safe smaller-file extraction/integration through a supported path on a future run. No main-branch changes or release were made.
+
+**Pending verification:** check Linux/Windows CI for 94399d1, and visually test the integrated component after the desktop edit is unblocked. Continue reference matching, including working sidebar navigation and inspector replacement. 
