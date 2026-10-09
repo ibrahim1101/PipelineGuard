@@ -826,3 +826,11 @@ User supplied a polished dashboard reference image and an actual Windows screens
 Fresh remote check: draft PR #1 remains open at e90a8fb; stable main remains 5347d260. Both Linux Security Scan 37879907191 and Windows desktop validation 37879907340 succeeded on e90a8fb. The earlier cancelled Windows run 37879855580 was superseded; no failed current-head CI needs rerun.
 
 Uncommitted attempts: a desktop.py change to clear the inspector on scan start, scan completion, and findings refresh was rejected by connector safety checks. A separate soc_finding_panel.py change to snapshot allowlisted clipboard details and wrap long headings was also rejected. Neither landed. No push was performed. Next: implement these fixes through a supported, permitted edit path and add regression tests, then verify actual Windows UI behavior. Do not claim visual acceptance or alter main/release.
+
+
+## 9 October 2026 — CLI offline mode (unverified)
+
+- UI development paused while the Emergent frontend is designed separately. Existing desktop UI remains unchanged.
+- Commit `55937900` adds `--offline` to `pipelineguard.main scan`, passing `online=False` into the existing shared scan engine. This disables live OSV requests; the report must continue to identify dependency intelligence as incomplete rather than declaring dependencies safe.
+- Pending Windows validation: `python -m pipelineguard.main scan --help`, `python -m pipelineguard.main scan . --offline --json`, and `python -m pytest -q -rs`. Do not record test success until results are observed.
+- Next engine priorities: callback/streaming finding coverage, advanced analyzer cache correctness, and dependency reachability research and design.
