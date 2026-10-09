@@ -819,3 +819,10 @@ User supplied a polished dashboard reference image and an actual Windows screens
 **Rejected writes:** a direct `pipelineguard/desktop.py` lifecycle patch was blocked by GitHub connector safety checks; it did not land. An attempted `tests/test_soc_finding_panel.py` regression-test addition was also blocked. An attempt to refresh draft PR #1 description was blocked. Do not claim these edits were committed. No alternate force push or safety-control bypass was attempted.
 
 **CI at last check:** Linux run `37879855595` and Windows run `37879855580` were in progress for `0cc97fb`; outcomes pending. Next: inspect CI results, test actual Tk deselection behavior, add integration regression coverage when permitted, then continue responsive/reference layout work. Keep stable main/release unchanged.
+
+
+## SOC inspector lifecycle follow-up — 2026-10-09, 12:00 IST
+
+Fresh remote check: draft PR #1 remains open at e90a8fb; stable main remains 5347d260. Both Linux Security Scan 37879907191 and Windows desktop validation 37879907340 succeeded on e90a8fb. The earlier cancelled Windows run 37879855580 was superseded; no failed current-head CI needs rerun.
+
+Uncommitted attempts: a desktop.py change to clear the inspector on scan start, scan completion, and findings refresh was rejected by connector safety checks. A separate soc_finding_panel.py change to snapshot allowlisted clipboard details and wrap long headings was also rejected. Neither landed. No push was performed. Next: implement these fixes through a supported, permitted edit path and add regression tests, then verify actual Windows UI behavior. Do not claim visual acceptance or alter main/release.
