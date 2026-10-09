@@ -54,6 +54,23 @@ class FindingInspector(tk.Frame):
                                        command=self.copy_safe_details)
         self.copy_button.pack(anchor="e", padx=16, pady=(0, 14))
         self.clear()
+        self._bind_findings_tree()
+
+    def _bind_findings_tree(self) -> None:
+        """Clear stale details when the owning findings table loses selection."""
+        # The desktop places its Treeview inside a sibling table card.
+        # Standalone inspector tests have no table, so binding is optional.
+        for sibling in self.master.winfo_children():
+            if sibling is self:
+                continue
+            for child in sibling.winfo_children():
+                if isinstance(child, ttk.Treeview):
+                    child.bind("<<TreeviewSelect>>", self._on_tree_selection, add="+")
+                    return
+
+    def _on_tree_selection(self, event: tk.Event) -> None:
+        if not event.widget.selection():
+            self.clear()
 
     @staticmethod
     def _set_readonly(widget: tk.Text, value: str) -> None:
