@@ -808,3 +808,14 @@ User supplied a polished dashboard reference image and an actual Windows screens
 **Uncommitted attempts:** A minimal full-file replacement of `pipelineguard/desktop.py` to call `self.inspector.clear()` on scan start/completion and findings refresh was blocked by connector safety checks. A separate small `pipelineguard/soc_finding_panel.py` update to clear on `<<TreeviewSelect>>` and reject clipboard copy without an active selection was also blocked. Neither change landed. Do not bypass connector safety controls or claim a fix; re-evaluate through an approved edit path when available. Until then, the current Windows/Linux CI successes do not cover this stale-inspector behavior.
 
 **Next:** Implement and test explicit inspector lifecycle reset through an approved path, then verify responsive layout and screenshot parity. Keep main and the stable release unchanged.
+
+
+## Inspector deselection guard — 2026-10-09, ~09:00 IST
+
+**Starting remote state:** draft PR #1 open on `feat/v2-engine-integration` at `19549ef61d71528288efd7282e543ca9e92ab013`; stable `main` remains `5347d260e86ef1dc3f8d5963bed3df95fe03aa64`. Linux Security Scan run `37874831501` and Windows desktop validation run `37874831484` both completed successfully for the preceding head. No failed run needed rerunning.
+
+**Implemented:** commit `0cc97fb9fb5c9b9ef98205def4ac7fc17b14a6af` updates `pipelineguard/soc_finding_panel.py` to attach an additional `<<TreeviewSelect>>` listener to the sibling findings Treeview. When the table selection becomes empty (e.g. a selected row is removed by filtering or scan reset), the inspector calls its existing `clear()` method to remove stale heading, severity badge, displayed metadata, masked preview and clipboard button state. The original Treeview handler remains installed via `add="+"`. Standalone panel use without a sibling Treeview remains supported. This is a targeted UI lifecycle mitigation; live Windows interaction is still unverified.
+
+**Rejected writes:** a direct `pipelineguard/desktop.py` lifecycle patch was blocked by GitHub connector safety checks; it did not land. An attempted `tests/test_soc_finding_panel.py` regression-test addition was also blocked. An attempt to refresh draft PR #1 description was blocked. Do not claim these edits were committed. No alternate force push or safety-control bypass was attempted.
+
+**CI at last check:** Linux run `37879855595` and Windows run `37879855580` were in progress for `0cc97fb`; outcomes pending. Next: inspect CI results, test actual Tk deselection behavior, add integration regression coverage when permitted, then continue responsive/reference layout work. Keep stable main/release unchanged.
