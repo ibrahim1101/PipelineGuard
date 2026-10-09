@@ -56,3 +56,10 @@ def masked_code_preview(item: Mapping[str, Any]) -> str:
     return (f"{location}:{line_number}\n"
             f"{line_number:>5}  [source content hidden for privacy]\n\n"
             "Open this file in your editor to review the finding safely.")
+
+
+def safe_finding_heading(item: Mapping[str, Any]) -> tuple[str, str]:
+    """Compact inspector title from bounded, single-line allowlisted metadata."""
+    severity = _metadata(item.get("severity"), 16).upper()
+    rule = _metadata(item.get("rule"), 90)
+    return severity, rule
