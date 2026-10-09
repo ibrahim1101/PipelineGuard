@@ -16,6 +16,7 @@ from pipelineguard.brand_asset import load_cat_logo
 from pipelineguard.engine import run_scan
 from pipelineguard.reporting import write_json_report, write_html_report, write_sarif_report
 from pipelineguard.soc_inspector import finding_group, safe_finding_details, masked_code_preview
+from pipelineguard.soc_finding_panel import FindingInspector
 from pipelineguard.theme import (
     OLIVE, OLIVE_DARK, OLIVE_DEEP, OLIVE_MID, OLIVE_LIGHT, CANVAS,
     CARD, INK, MUTED, BORDER, SAFE, WARNING, BLOCKED, WHITE,
@@ -141,10 +142,20 @@ class Desktop:
             return "break"
 
     def _navigate(self, destination):
-        """Navigate to a working section without presenting nonfunctional pages."""
+        """Navigate within the scrolling workspace without placeholder popups."""
         if destination == "Scan Project":
             self.header_scan_button.focus_set()
-        elif destination == "Findings":
+        elif destination == "Dashboard":
+            self.workspace_canvas.yview_moveto(0)
+        elif destination in ("Findings", "Dependencies"):
+            if destination == "Dependencies":
+                self.finding_tabs.select(2)
+            else:
+                self.finding_tabs.select(0)
+            self.root.update_idletasks()
+            offset = self.finding_tabs.winfo_rooty() - self.workspace.winfo_rooty()
+            height = max(1, self.workspace.winfo_height())
+            self.workspace_canvas.yview_moveto(max(0, min(1, offset / height)))
             self.tree.focus_set()
         elif destination == "Reports":
             self.export()
@@ -152,10 +163,6 @@ class Desktop:
             self.show_settings()
         elif destination == "OSV Lookup":
             messagebox.showinfo("OSV Lookup", "Enable live OSV lookup in the scan options, then scan a project.")
-        elif destination == "Dependencies":
-            messagebox.showinfo("Dependencies", "Dependency results are included in the findings table and exported report.")
-        else:
-            self.status_label.configure(text=self.status.get())
 
     def _label(self, parent, text, size=10, color=INK, bold=False, **kwargs):
         return tk.Label(parent, text=text, bg=kwargs.pop("bg", CANVAS), fg=color,
@@ -686,25 +693,12 @@ class Desktop:
         self.tree.tag_configure("info", foreground=MUTED)
         self.tree.bind("<<TreeviewSelect>>", self.details)
 
-        detail_card = tk.Frame(wrap, bg=CARD, highlightbackground=BORDER, highlightthickness=1)
-        detail_card.pack(side="right", fill="both", padx=(14, 0))
-        self._label(detail_card, "Finding details", 11, OLIVE_LIGHT, True, bg=CARD).pack(
-            anchor="w", padx=14, pady=(12, 5))
-        self.detail = tk.Text(detail_card, width=38, height=12, wrap="word",
-                              bg=CARD, fg=INK, relief="flat", borderwidth=0,
-                              font=("Consolas", 9), padx=14, pady=8)
-        self.detail.pack(fill="x", padx=4, pady=(0, 4))
-        self._label(detail_card, "MASKED SOURCE PREVIEW", 9, OLIVE_LIGHT, True,
-                    bg=CARD).pack(anchor="w", padx=14, pady=(4, 4))
-        self.preview = tk.Text(detail_card, width=38, height=6, wrap="word",
-                               bg=OLIVE_DEEP, fg=MUTED, relief="flat", borderwidth=0,
-                               font=("Consolas", 9), padx=12, pady=10)
-        self.preview.pack(fill="both", expand=True, padx=12, pady=(0, 8))
-        self.preview.insert("end", "Select a finding to see its masked location.")
-        self.preview.configure(state="disabled")
-        ttk.Button(detail_card, text="Copy safe details", command=self.copy_details).pack(anchor="e", padx=14, pady=(0, 12))
-        self.detail.insert("end", "Select a finding to inspect its details.")
-        self.detail.configure(state="disabled")
+        self.inspector = FindingInspector(wrap)
+        self.inspector.pack(side="right", fill="both", padx=(14, 0))
+        # Compatibility with existing scan lifecycle and read-only display resets.
+        self.detail = self.inspector.details_text
+        self.preview = self.inspector.preview_text
+
 
     def choose(self):
         value = filedialog.askdirectory(title="Choose a project folder")
@@ -985,15 +979,7 @@ class Desktop:
         index = int(selected[0])
         if index >= len(self.all_findings):
             return
-        finding = self.all_findings[index]
-        for widget, content in (
-            (self.detail, safe_finding_details(finding)),
-            (self.preview, masked_code_preview(finding)),
-        ):
-            widget.configure(state="normal")
-            widget.delete("1.0", "end")
-            widget.insert("end", content)
-            widget.configure(state="disabled")
+        self.inspector.select_finding(self.all_findings[index])
 
 
     def save_history(self, report):
