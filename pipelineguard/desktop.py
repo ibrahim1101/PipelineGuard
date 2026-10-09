@@ -107,12 +107,15 @@ class Desktop:
             ("◷  Scan History", self.show_history),
             ("⚙  Settings", lambda: self._navigate("Settings")),
         )
+        self.nav_buttons = {}
         for label, callback in navigation:
-            tk.Button(self.sidebar, text=label, command=callback, anchor="w",
-                      bg=OLIVE_DARK if label.startswith("▦") else OLIVE_DEEP,
-                      fg=WHITE, activebackground=OLIVE_MID,
-                      activeforeground=WHITE, relief="flat", borderwidth=0,
-                      font=("Segoe UI", 10), padx=14, pady=11).pack(fill="x", padx=7, pady=2)
+            name = label.split("  ", 1)[-1]
+            button = tk.Button(self.sidebar, text=label, command=callback, anchor="w",
+                               bg=OLIVE_DEEP, fg=MUTED, activebackground=OLIVE_DARK,
+                               activeforeground=WHITE, relief="flat", borderwidth=0,
+                               font=("Segoe UI", 10), padx=14, pady=11)
+            button.pack(fill="x", padx=7, pady=2)
+            self.nav_buttons[name] = button
         tk.Button(self.sidebar, text="ⓘ  About", command=self.show_about,
                   anchor="w", bg=OLIVE_DEEP, fg=OLIVE_LIGHT, relief="flat",
                   borderwidth=0, padx=14, pady=12).pack(side="bottom", fill="x")
@@ -173,6 +176,10 @@ class Desktop:
             return
         if destination not in ("Dashboard", "Findings", "Dependencies"):
             return
+        for name, button in self.nav_buttons.items():
+            active = name == destination
+            button.configure(bg=OLIVE_DARK if active else OLIVE_DEEP,
+                             fg=OLIVE_LIGHT if active else MUTED)
         for widget in self._dashboard_widgets + self._findings_widgets:
             widget.pack_forget()
         widgets = self._dashboard_widgets if destination == "Dashboard" else self._findings_widgets
