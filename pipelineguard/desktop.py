@@ -72,6 +72,7 @@ class Desktop:
         self._build_analytics()
         self._build_charts()
         self._build_findings()
+        self._setup_page_navigation()
         self.root.after(100, self.poll)
 
     def _build_shell(self):
@@ -140,28 +141,48 @@ class Desktop:
             self.workspace_canvas.yview_scroll(-1 if event.delta > 0 else 1, "units")
             return "break"
 
+    def _setup_page_navigation(self):
+        """Separate existing dashboard and findings widgets without rebuilding scan state."""
+        self._page_pack_options = {
+            widget: dict(widget.pack_info())
+            for widget in self.workspace.winfo_children()
+        }
+        self._dashboard_widgets = []
+        self._findings_widgets = []
+        findings_started = False
+        for widget in self.workspace.winfo_children():
+            if isinstance(widget, tk.Label) and widget.cget("text") == "Security findings":
+                findings_started = True
+            (self._findings_widgets if findings_started else self._dashboard_widgets).append(widget)
+        self._navigate("Dashboard")
+
     def _navigate(self, destination):
-        """Navigate within the scrolling workspace without placeholder popups."""
+        """Show one workspace at a time; preserve scanner widgets and scan results."""
         if destination == "Scan Project":
+            self._navigate("Dashboard")
             self.header_scan_button.focus_set()
-        elif destination == "Dashboard":
-            self.workspace_canvas.yview_moveto(0)
-        elif destination in ("Findings", "Dependencies"):
-            if destination == "Dependencies":
-                self.finding_tabs.select(2)
-            else:
-                self.finding_tabs.select(0)
-            self.root.update_idletasks()
-            offset = self.finding_tabs.winfo_rooty() - self.workspace.winfo_rooty()
-            height = max(1, self.workspace.winfo_height())
-            self.workspace_canvas.yview_moveto(max(0, min(1, offset / height)))
-            self.tree.focus_set()
-        elif destination == "Reports":
-            self.export()
-        elif destination == "Settings":
+            return
+        if destination == "Settings":
             self.show_settings()
-        elif destination == "OSV Lookup":
+            return
+        if destination == "Reports":
+            self.export()
+            return
+        if destination == "OSV Lookup":
             messagebox.showinfo("OSV Lookup", "Enable live OSV lookup in the scan options, then scan a project.")
+            return
+        if destination not in ("Dashboard", "Findings", "Dependencies"):
+            return
+        for widget in self._dashboard_widgets + self._findings_widgets:
+            widget.pack_forget()
+        widgets = self._dashboard_widgets if destination == "Dashboard" else self._findings_widgets
+        for widget in widgets:
+            widget.pack(**self._page_pack_options[widget])
+        if destination == "Dependencies":
+            self.finding_tabs.select(2)
+        elif destination == "Findings":
+            self.finding_tabs.select(0)
+        self.workspace_canvas.yview_moveto(0)
 
     def _label(self, parent, text, size=10, color=INK, bold=False, **kwargs):
         return tk.Label(parent, text=text, bg=kwargs.pop("bg", CANVAS), fg=color,
