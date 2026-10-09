@@ -784,3 +784,16 @@ User supplied a polished dashboard reference image and an actual Windows screens
 **Blocked writes:** two attempts to update the existing 58 KB `pipelineguard/desktop.py` via the GitHub connector were rejected by safety checks. First attempt included navigation and inspector layout changes; second was a smaller navigation-only change. Refetch confirmed the edits had not landed. Avoid repeated identical retries; consider safe smaller-file extraction/integration through a supported path on a future run. No main-branch changes or release were made.
 
 **Pending verification:** check Linux/Windows CI for 94399d1, and visually test the integrated component after the desktop edit is unblocked. Continue reference matching, including working sidebar navigation and inspector replacement. 
+
+
+## SOC inspector integration and sidebar navigation — 2026-10-09, ~07:00 IST
+
+**Remote starting state:** draft PR #1 open, head `6c5b92a`, stable main at `5347d260`. Latest preceding Linux run `37865491924` and Windows run `37865491909` both completed successfully, verified using GitHub workflow-run API. No interrupted prior commit was detected and no rerun was required.
+
+**Implementation:** commit `bc81032abeb6f44304134269ab8abd9cc5c96a16` successfully updates `pipelineguard/desktop.py` to import and instantiate the previously committed `FindingInspector` as the actual right-hand findings panel. Existing `self.detail` and `self.preview` widget references are maintained as compatibility aliases for scan lifecycle code. Selecting a finding now invokes the panel's `select_finding` method, displaying bounded severity/title, allowlisted metadata and intentionally masked source location. The sidebar's Dashboard action scrolls to top, Findings scrolls to the tabbed workspace and activates All Findings, and Dependencies activates the Dependencies tab and scrolls there. Reports, Settings, OSV help and scan-profile behavior are preserved. No scanner engine or release/main changes.
+
+**Verification:** GitHub Linux Security Scan `37870188445` completed successfully for `bc81032`. GitHub Windows desktop validation `37870188366` completed successfully for the same commit, including its packaged Windows checks. This is automated build/startup validation, not user visual acceptance against the reference image.
+
+**Failed attempts:** two separate new integration-test file creates and one append to existing `tests/test_soc_dialogs.py` were rejected by connector safety checks. No integration-test commit landed; the already committed component tests remain. The desktop integration write itself succeeded on the first attempt. Do not blindly retry blocked test writes unchanged.
+
+**Next:** refresh CI before additional changes; add integration coverage when permitted, clear inspector selection/badge when scans restart, verify real Windows layout and responsiveness, and continue reference-image parity. Keep PR draft and stable main unchanged.
