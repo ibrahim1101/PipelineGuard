@@ -797,3 +797,14 @@ User supplied a polished dashboard reference image and an actual Windows screens
 **Failed attempts:** two separate new integration-test file creates and one append to existing `tests/test_soc_dialogs.py` were rejected by connector safety checks. No integration-test commit landed; the already committed component tests remain. The desktop integration write itself succeeded on the first attempt. Do not blindly retry blocked test writes unchanged.
 
 **Next:** refresh CI before additional changes; add integration coverage when permitted, clear inspector selection/badge when scans restart, verify real Windows layout and responsiveness, and continue reference-image parity. Keep PR draft and stable main unchanged.
+
+
+## Inspector stale-selection investigation — 2026-10-09, ~08:00 IST
+
+**Fresh remote checks:** draft PR #1 remains open on `feat/v2-engine-integration` at `2a1f2e43ab82cc2636efdfc2bde8101c333daf55`; stable main remains `5347d260e86ef1dc3f8d5963bed3df95fe03aa64`. Linux Security Scan run `37870320106` and Windows desktop validation run `37870320093` both completed successfully on the branch head. No CI failure or incomplete push required a retry at the beginning of this iteration.
+
+**Issue found by code review:** The desktop aliases the new inspector's text widgets as `self.detail` and `self.preview`. Scan startup and completion replace their text directly but do not reset `FindingInspector._current`, severity badge, title or Copy button. Rebuilding the findings table on filter/tab changes can also leave a stale inspector selection. This is a UI correctness/privacy issue: users could see or copy details for a finding no longer selected. The existing `FindingInspector.clear()` method resets all state, but it is not called during these transitions.
+
+**Uncommitted attempts:** A minimal full-file replacement of `pipelineguard/desktop.py` to call `self.inspector.clear()` on scan start/completion and findings refresh was blocked by connector safety checks. A separate small `pipelineguard/soc_finding_panel.py` update to clear on `<<TreeviewSelect>>` and reject clipboard copy without an active selection was also blocked. Neither change landed. Do not bypass connector safety controls or claim a fix; re-evaluate through an approved edit path when available. Until then, the current Windows/Linux CI successes do not cover this stale-inspector behavior.
+
+**Next:** Implement and test explicit inspector lifecycle reset through an approved path, then verify responsive layout and screenshot parity. Keep main and the stable release unchanged.
