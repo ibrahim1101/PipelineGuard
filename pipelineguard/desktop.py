@@ -211,7 +211,7 @@ class Desktop:
         toolbar.pack(side="right", fill="y", padx=14, pady=17)
         self.header_scan_button = ttk.Button(toolbar, text="▶  Start Scan", command=self.scan)
         self.header_scan_button.pack(side="right", padx=(8, 0))
-        ttk.Button(toolbar, text="⚙", width=3, command=self.show_config_help).pack(side="right", padx=(8, 0))
+        ttk.Button(toolbar, text="⚙", width=3, command=self.show_settings).pack(side="right", padx=(8, 0))
         self.header_profile = ttk.Combobox(toolbar, textvariable=self.scan_profile,
                                             state="readonly", width=12,
                                             values=("Quick", "Standard", "Deep", "Release", "Forensic"))
@@ -276,7 +276,7 @@ class Desktop:
                 child.destroy()
             heading.configure(text=name)
             if name == "General":
-                label("Default scan profile")
+                label("Default scan profile (also available in the quick scan bar)")
                 ttk.Combobox(panel, textvariable=self.scan_profile, state="readonly",
                              values=("Quick", "Standard", "Deep", "Release", "Forensic"),
                              width=20).pack(anchor="w", padx=16)
@@ -308,9 +308,9 @@ class Desktop:
                            command=self.open_report_folder).pack(anchor="w", padx=16)
             elif name == "Appearance":
                 label("Active appearance")
-                self._label(panel, "Dark olive SOC theme",
+                self._label(panel, "Premium Dark Titanium",
                             11, OLIVE_LIGHT, True, bg=CARD).pack(anchor="w", padx=16)
-                self._label(panel, "The approved visual design is under development.",
+                self._label(panel, "Matte charcoal surfaces with restrained security-lime accents.",
                             9, MUTED, bg=CARD).pack(anchor="w", padx=16, pady=8)
             else:
                 label("Application information")
@@ -337,22 +337,9 @@ class Desktop:
             pass
         self.online = tk.BooleanVar(value=True)
         self.scan_profile = tk.StringVar(value="Standard")
-        tools = tk.Frame(self.workspace, bg=CANVAS)
-        tools.pack(fill="x", padx=24, pady=(10, 10))
-        tk.Label(tools, text="SCAN OPTIONS", bg=CANVAS, fg=OLIVE_LIGHT,
-                 font=("Segoe UI", 9, "bold")).pack(side="left", padx=(0, 12))
-        tk.Checkbutton(tools, text="Live OSV lookup", variable=self.online,
-                       bg=CANVAS, fg=INK, activebackground=CANVAS,
-                       activeforeground=INK, selectcolor=OLIVE_DARK,
-                       font=("Segoe UI", 9)).pack(side="left")
-        ttk.Button(tools, text="Config…", command=self.choose_config).pack(side="left", padx=(12, 4))
-        ttk.Button(tools, text="?", width=3, command=self.show_config_help).pack(side="left")
-        self.scan_button = ttk.Button(tools, text="Scan project", command=self.scan)
-        # Retained for existing scan state management; top toolbar is primary action.
-        self.scan_button.pack_forget()
-        ttk.Button(tools, text="Export report", command=self.export).pack(side="right", padx=(6, 0))
-        ttk.Button(tools, text="Open reports", command=self.open_report_folder).pack(side="right", padx=(6, 0))
-        ttk.Button(tools, text="Scan history", command=self.show_history).pack(side="right")
+        # Quick scan actions live exclusively in the persistent top command bar.
+        # Keep this compatibility button for existing scan lifecycle updates.
+        self.scan_button = ttk.Button(self.workspace, text="Scan project", command=self.scan)
 
     def _soc_card(self, parent, title, column, weight=1):
         """Reusable compact SOC card with the same spacing as the approved dashboard."""
